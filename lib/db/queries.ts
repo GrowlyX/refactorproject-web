@@ -1,327 +1,581 @@
 // lib/queries.ts
-import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, or, sql, inArray } from 'drizzle-orm';
 import { db } from './drizzle';
 import {
-  organizations,
-  organizationMembers,
-  recordings,
-  recordingResults,
-  users
+    organizations,
+    organizationMembers,
+    projects,
+    users
 } from './schema';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
-// Helper to get current user from session
-async function getCurrentUserId() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.id || null;
+// Authkit types
+export interface UserInfo {
+    user: {
+        id: string;
+        email: string;
+        firstName?: string;
+        lastName?: string;
+        profilePictureUrl?: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+    sessionId: string;
+    organizationId?: string;
+    role?: string;
+    permissions?: string[];
+    entitlements?: string[];
+    impersonator?: {
+        email: string;
+        reason: string | null;
+    };
+    accessToken: string;
 }
 
-// User queries
+// User management
+export async function getPlatformUser(userInfo: UserInfo) {
+    const authkitId = userInfo.user.id;
+
+    // Try to find existing user
+    let user = await db.query.users.findFirst({
+        where: eq(users.authkitId, authkitId),
+    });
+
+    // Create user if doesn't exist
+    if (!user) {
+        const [newUser] = await db
+            .insert(users)
+            .values({
+                authkitId,
+            })
+            .returning();
+
+        user = newUser;
+    }
+
+    return user;
+}
+
 export async function getUserById(userId: number) {
-  return db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
+    return db.query.users.findFirst({
+        where: eq(users.id, userId),
+    });
 }
 
-export async function getUserByEmail(email: string) {
-  return db.query.users.findFirst({
-    where: eq(users.email, email),
-  });
-}
-
-export async function getUserByUsername(username: string) {
-  return db.query.users.findFirst({
-    where: eq(users.username, username),
-  });
+export async function getUserByAuthkitId(authkitId: string) {
+    return db.query.users.findFirst({
+        where: eq(users.authkitId, authkitId),
+    });
 }
 
 // Organization queries
-export async function getUserOrganizations(userId?: number) {
-  const currentUserId = userId || await getCurrentUserId();
-  if (!currentUserId) return [];
+export async function getUserOrganizations(userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
 
-  const memberships = await db
-    .select({
-      id: organizations.id,
-      name: organizations.name,
-      slug: organizations.slug,
-      description: organizations.description,
-      isPersonal: organizations.isPersonal,
-      ownerId: organizations.ownerId,
-      role: organizationMembers.role,
-      joinedAt: organizationMembers.joinedAt,
-      memberCount: sql<number>`(
-                                   SELECT COUNT(*)::int
-                                   FROM ${organizationMembers} om
-                                   WHERE om.organization_id = ${organizations.id}
-                               )`,
-      recordingCount: sql<number>`(
-                                      SELECT COUNT(*)::int
-                                      FROM ${recordings} r
-                                      WHERE r.organization_id = ${organizations.id}
-                                  )`,
-    })
-    .from(organizationMembers)
-    .innerJoin(organizations, eq(organizationMembers.organizationId, organizations.id))
-    .where(eq(organizationMembers.userId, currentUserId))
-    .orderBy(desc(organizations.isPersonal), organizations.name);
+    const memberships = await db
+        .select({
+            id: organizations.id,
+            githubId: organizations.githubId,
+            name: organizations.name,
+            joinedAt: organizationMembers.joinedAt,
+            projectCount: sql<number>`(
+        SELECT COUNT(*)::int
+        FROM ${projects} p
+        WHERE p.organization_id = ${organizations.id}
+      )`,
+            memberCount: sql<number>`(
+        SELECT COUNT(*)::int
+        FROM ${organizationMembers} om
+        WHERE om.organization_id = ${organizations.id}
+      )`,
+        })
+        .from(organizationMembers)
+        .innerJoin(organizations, eq(organizationMembers.organizationId, organizations.id))
+        .where(eq(organizationMembers.userId, user.id))
+        .orderBy(organizations.name);
 
-  return memberships;
+    return memberships;
 }
 
-export async function getOrganizationBySlug(slug: string) {
-  const org = await db.query.organizations.findFirst({
-    where: eq(organizations.slug, slug),
-  });
+export async function getOrganizationById(organizationId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
 
-  if (!org) return null;
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, organizationId);
+    if (!hasAccess) return null;
 
-  // Get member count and recording count
-  const stats = await db
-    .select({
-      memberCount: sql<number>`COUNT(DISTINCT ${organizationMembers.userId})::int`,
-      recordingCount: sql<number>`COUNT(DISTINCT ${recordings.id})::int`,
-    })
-    .from(organizations)
-    .leftJoin(organizationMembers, eq(organizations.id, organizationMembers.organizationId))
-    .leftJoin(recordings, eq(organizations.id, recordings.organizationId))
-    .where(eq(organizations.id, org.id))
-    .groupBy(organizations.id);
+    const org = await db.query.organizations.findFirst({
+        where: eq(organizations.id, organizationId),
+    });
 
-  return {
-    ...org,
-    memberCount: stats[0]?.memberCount || 0,
-    recordingCount: stats[0]?.recordingCount || 0,
-  };
+    if (!org) return null;
+
+    // Get stats
+    const stats = await db
+        .select({
+            memberCount: sql<number>`COUNT(DISTINCT ${organizationMembers.userId})::int`,
+            projectCount: sql<number>`COUNT(DISTINCT ${projects.id})::int`,
+        })
+        .from(organizations)
+        .leftJoin(organizationMembers, eq(organizations.id, organizationMembers.organizationId))
+        .leftJoin(projects, eq(organizations.id, projects.organizationId))
+        .where(eq(organizations.id, org.id))
+        .groupBy(organizations.id);
+
+    return {
+        ...org,
+        memberCount: stats[0]?.memberCount || 0,
+        projectCount: stats[0]?.projectCount || 0,
+    };
 }
 
-export async function getOrganizationMembers(organizationId: number) {
-  return db
-    .select({
-      id: users.id,
-      email: users.email,
-      username: users.username,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      image: users.image,
-      role: organizationMembers.role,
-      joinedAt: organizationMembers.joinedAt,
-    })
-    .from(organizationMembers)
-    .innerJoin(users, eq(organizationMembers.userId, users.id))
-    .where(eq(organizationMembers.organizationId, organizationId))
-    .orderBy(organizationMembers.role, users.firstName);
+export async function getOrganizationByGithubId(githubId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    const org = await db.query.organizations.findFirst({
+        where: eq(organizations.githubId, githubId),
+    });
+
+    if (!org) return null;
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, org.id);
+    if (!hasAccess) return null;
+
+    // Get stats
+    const stats = await db
+        .select({
+            memberCount: sql<number>`COUNT(DISTINCT ${organizationMembers.userId})::int`,
+            projectCount: sql<number>`COUNT(DISTINCT ${projects.id})::int`,
+        })
+        .from(organizations)
+        .leftJoin(organizationMembers, eq(organizations.id, organizationMembers.organizationId))
+        .leftJoin(projects, eq(organizations.id, projects.organizationId))
+        .where(eq(organizations.id, org.id))
+        .groupBy(organizations.id);
+
+    return {
+        ...org,
+        memberCount: stats[0]?.memberCount || 0,
+        projectCount: stats[0]?.projectCount || 0,
+    };
+}
+
+export async function createOrganization(githubId: number, name: string, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    // Create organization
+    const [org] = await db
+        .insert(organizations)
+        .values({
+            githubId,
+            name,
+        })
+        .returning();
+
+    // Add creator as member
+    await db
+        .insert(organizationMembers)
+        .values({
+            organizationId: org.id,
+            userId: user.id,
+        });
+
+    return org;
+}
+
+export async function updateOrganization(organizationId: number, updates: { name?: string }, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, organizationId);
+    if (!hasAccess) return null;
+
+    const [org] = await db
+        .update(organizations)
+        .set({
+            ...updates,
+            updatedAt: new Date(),
+        })
+        .where(eq(organizations.id, organizationId))
+        .returning();
+
+    return org;
+}
+
+export async function deleteOrganization(organizationId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, organizationId);
+    if (!hasAccess) return false;
+
+    await db
+        .delete(organizations)
+        .where(eq(organizations.id, organizationId));
+
+    return true;
+}
+
+// Organization member management
+export async function getOrganizationMembers(organizationId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, organizationId);
+    if (!hasAccess) return [];
+
+    return db
+        .select({
+            id: users.id,
+            authkitId: users.authkitId,
+            joinedAt: organizationMembers.joinedAt,
+            membershipId: organizationMembers.id,
+        })
+        .from(organizationMembers)
+        .innerJoin(users, eq(organizationMembers.userId, users.id))
+        .where(eq(organizationMembers.organizationId, organizationId))
+        .orderBy(organizationMembers.joinedAt);
+}
+
+export async function addOrganizationMember(organizationId: number, userAuthkitId: string, userInfo: UserInfo) {
+    const currentUser = await getPlatformUser(userInfo);
+
+    // Check if current user has access to the organization
+    const hasAccess = await checkUserOrgAccess(currentUser.id, organizationId);
+    if (!hasAccess) return null;
+
+    // Get or create the user to be added
+    const targetUser = await db.query.users.findFirst({
+        where: eq(users.authkitId, userAuthkitId),
+    });
+
+    if (!targetUser) {
+        // Create user if they don't exist
+        const [newUser] = await db
+            .insert(users)
+            .values({
+                authkitId: userAuthkitId,
+            })
+            .returning();
+
+        // Add as member
+        const [membership] = await db
+            .insert(organizationMembers)
+            .values({
+                organizationId,
+                userId: newUser.id,
+            })
+            .returning();
+
+        return { user: newUser, membership };
+    }
+
+    // Check if already a member
+    const existingMembership = await db.query.organizationMembers.findFirst({
+        where: and(
+            eq(organizationMembers.organizationId, organizationId),
+            eq(organizationMembers.userId, targetUser.id)
+        ),
+    });
+
+    if (existingMembership) {
+        return { user: targetUser, membership: existingMembership };
+    }
+
+    // Add as member
+    const [membership] = await db
+        .insert(organizationMembers)
+        .values({
+            organizationId,
+            userId: targetUser.id,
+        })
+        .returning();
+
+    return { user: targetUser, membership };
+}
+
+export async function removeOrganizationMember(organizationId: number, userId: number, userInfo: UserInfo) {
+    const currentUser = await getPlatformUser(userInfo);
+
+    // Check if current user has access
+    const hasAccess = await checkUserOrgAccess(currentUser.id, organizationId);
+    if (!hasAccess) return false;
+
+    await db
+        .delete(organizationMembers)
+        .where(
+            and(
+                eq(organizationMembers.organizationId, organizationId),
+                eq(organizationMembers.userId, userId)
+            )
+        );
+
+    return true;
 }
 
 export async function checkUserOrgAccess(userId: number, organizationId: number) {
-  const membership = await db.query.organizationMembers.findFirst({
-    where: and(
-      eq(organizationMembers.userId, userId),
-      eq(organizationMembers.organizationId, organizationId)
-    ),
-  });
+    const membership = await db.query.organizationMembers.findFirst({
+        where: and(
+            eq(organizationMembers.userId, userId),
+            eq(organizationMembers.organizationId, organizationId)
+        ),
+    });
 
-  return membership;
+    return membership;
 }
 
-// Recording queries - Updated to accept optional userId parameter
-export async function getOrganizationRecordings(organizationId: number, userId?: number) {
-  // If userId is not provided, try to get it from session
-  const currentUserId = userId || await getCurrentUserId();
-  if (!currentUserId) return [];
-
-  // Check if user has access to this organization
-  const hasAccess = await checkUserOrgAccess(currentUserId, organizationId);
-  if (!hasAccess) return [];
-
-  return db
-    .select({
-      id: recordings.id,
-      name: recordings.name,
-      state: recordings.state,
-      createdAt: recordings.createdAt,
-      updatedAt: recordings.updatedAt,
-      audioUrl: recordings.audioUrl,
-      hasResult: sql<boolean>`${recordings.resultId} IS NOT NULL`,
-      createdBy: {
-        id: users.id,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        username: users.username,
-        image: users.image,
-      },
-    })
-    .from(recordings)
-    .innerJoin(users, eq(recordings.createdBy, users.id))
-    .where(eq(recordings.organizationId, organizationId))
-    .orderBy(desc(recordings.createdAt));
+export async function getUserOrgAccess(userInfo: UserInfo, organizationId: number) {
+    const user = await getPlatformUser(userInfo);
+    return checkUserOrgAccess(user.id, organizationId);
 }
 
-export async function getRecordingById(recordingId: number, userId?: number) {
-  const currentUserId = userId || await getCurrentUserId();
-  if (!currentUserId) return null;
+// Project queries
+export async function getOrganizationProjects(organizationId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
 
-  const recording = await db.query.recordings.findFirst({
-    where: eq(recordings.id, recordingId),
-    with: {
-      organization: true,
-      createdByUser: true,
-      result: true,
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, organizationId);
+    if (!hasAccess) return [];
+
+    return db
+        .select({
+            id: projects.id,
+            githubRepositoryId: projects.githubRepositoryId,
+            moduleInterlinks: projects.moduleInterlinks,
+            createdAt: projects.createdAt,
+            updatedAt: projects.updatedAt,
+        })
+        .from(projects)
+        .where(eq(projects.organizationId, organizationId))
+        .orderBy(desc(projects.updatedAt));
+}
+
+export async function getProjectById(projectId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    const project = await db.query.projects.findFirst({
+        where: eq(projects.id, projectId),
+        with: {
+            organization: true,
+        },
+    });
+
+    if (!project) return null;
+
+    // Check if user has access to this project's organization
+    const hasAccess = await checkUserOrgAccess(user.id, project.organizationId);
+    if (!hasAccess) return null;
+
+    return project;
+}
+
+export async function getProjectByGithubRepoId(githubRepositoryId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    const project = await db.query.projects.findFirst({
+        where: eq(projects.githubRepositoryId, githubRepositoryId),
+        with: {
+            organization: true,
+        },
+    });
+
+    if (!project) return null;
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, project.organizationId);
+    if (!hasAccess) return null;
+
+    return project;
+}
+
+export async function createProject(
+    organizationId: number,
+    githubRepositoryId: number,
+    userInfo: UserInfo,
+    moduleInterlinks?: any,
+) {
+    const user = await getPlatformUser(userInfo);
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, organizationId);
+    if (!hasAccess) return null;
+
+    const [project] = await db
+        .insert(projects)
+        .values({
+            organizationId,
+            githubRepositoryId,
+            moduleInterlinks,
+        })
+        .returning();
+
+    return project;
+}
+
+export async function updateProject(
+    projectId: number,
+    updates: {
+        moduleInterlinks?: any;
     },
-  });
+    userInfo: UserInfo
+) {
+    const user = await getPlatformUser(userInfo);
 
-  if (!recording) return null;
+    // Get project to check organization access
+    const project = await db.query.projects.findFirst({
+        where: eq(projects.id, projectId),
+    });
 
-  // Check if user has access to this recording's organization
-  const hasAccess = await checkUserOrgAccess(currentUserId, recording.organizationId);
-  if (!hasAccess) return null;
+    if (!project) return null;
 
-  return recording;
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, project.organizationId);
+    if (!hasAccess) return null;
+
+    const [updatedProject] = await db
+        .update(projects)
+        .set({
+            ...updates,
+            updatedAt: new Date(),
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+
+    return updatedProject;
 }
 
-export async function getRecordingsByState(state: 'queued' | 'processing' | 'processed', userId?: number) {
-  const currentUserId = userId || await getCurrentUserId();
-  if (!currentUserId) return [];
+export async function deleteProject(projectId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
 
-  // Get user's organizations
-  const userOrgs = await getUserOrganizations(currentUserId);
-  const orgIds = userOrgs.map(org => org.id);
+    // Get project to check organization access
+    const project = await db.query.projects.findFirst({
+        where: eq(projects.id, projectId),
+    });
 
-  if (orgIds.length === 0) return [];
+    if (!project) return false;
 
-  return db
-    .select({
-      id: recordings.id,
-      name: recordings.name,
-      state: recordings.state,
-      createdAt: recordings.createdAt,
-      updatedAt: recordings.updatedAt,
-      organization: {
-        id: organizations.id,
-        name: organizations.name,
-        slug: organizations.slug,
-      },
-      createdBy: {
-        id: users.id,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        username: users.username,
-      },
-    })
-    .from(recordings)
-    .innerJoin(organizations, eq(recordings.organizationId, organizations.id))
-    .innerJoin(users, eq(recordings.createdBy, users.id))
-    .where(
-      and(
-        eq(recordings.state, state),
-        sql`${recordings.organizationId} = ANY(${orgIds})`
-      )
-    )
-    .orderBy(desc(recordings.createdAt));
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, project.organizationId);
+    if (!hasAccess) return false;
+
+    await db
+        .delete(projects)
+        .where(eq(projects.id, projectId));
+
+    return true;
 }
 
-export async function searchRecordings(query: string, userId?: number) {
-  const currentUserId = userId || await getCurrentUserId();
-  if (!currentUserId || !query) return [];
+// Search and filtering
+export async function searchUserOrganizations(query: string, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
 
-  // Get user's organizations
-  const userOrgs = await getUserOrganizations(currentUserId);
-  const orgIds = userOrgs.map(org => org.id);
+    if (!query) {
+        return getUserOrganizations(userInfo);
+    }
 
-  if (orgIds.length === 0) return [];
-
-  return db
-    .select({
-      id: recordings.id,
-      name: recordings.name,
-      state: recordings.state,
-      createdAt: recordings.createdAt,
-      organization: {
-        id: organizations.id,
-        name: organizations.name,
-        slug: organizations.slug,
-      },
-      createdBy: {
-        firstName: users.firstName,
-        lastName: users.lastName,
-      },
-    })
-    .from(recordings)
-    .innerJoin(organizations, eq(recordings.organizationId, organizations.id))
-    .innerJoin(users, eq(recordings.createdBy, users.id))
-    .where(
-      and(
-        sql`${recordings.organizationId} = ANY(${orgIds})`,
-        or(
-          ilike(recordings.name, `%${query}%`),
-          ilike(organizations.name, `%${query}%`)
+    const memberships = await db
+        .select({
+            id: organizations.id,
+            githubId: organizations.githubId,
+            name: organizations.name,
+            joinedAt: organizationMembers.joinedAt,
+            projectCount: sql<number>`(
+        SELECT COUNT(*)::int
+        FROM ${projects} p
+        WHERE p.organization_id = ${organizations.id}
+      )`,
+            memberCount: sql<number>`(
+        SELECT COUNT(*)::int
+        FROM ${organizationMembers} om
+        WHERE om.organization_id = ${organizations.id}
+      )`,
+        })
+        .from(organizationMembers)
+        .innerJoin(organizations, eq(organizationMembers.organizationId, organizations.id))
+        .where(
+            and(
+                eq(organizationMembers.userId, user.id),
+                ilike(organizations.name, `%${query}%`)
+            )
         )
-      )
-    )
-    .orderBy(desc(recordings.createdAt))
-    .limit(20);
+        .orderBy(organizations.name)
+        .limit(20);
+
+    return memberships;
+}
+
+export async function searchProjects(organizationId: number, query: string, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, organizationId);
+    if (!hasAccess) return [];
+
+    if (!query) {
+        return getOrganizationProjects(organizationId, userInfo);
+    }
+
+    // For now, we can't easily search inside JSONB without more complex queries
+    // This could be enhanced with full-text search on module names if needed
+    return db
+        .select({
+            id: projects.id,
+            githubRepositoryId: projects.githubRepositoryId,
+            moduleInterlinks: projects.moduleInterlinks,
+            createdAt: projects.createdAt,
+            updatedAt: projects.updatedAt,
+        })
+        .from(projects)
+        .where(eq(projects.organizationId, organizationId))
+        .orderBy(desc(projects.updatedAt))
+        .limit(20);
 }
 
 // Dashboard stats
-export async function getDashboardStats(userId?: number) {
-  const currentUserId = userId || await getCurrentUserId();
-  if (!currentUserId) return null;
+export async function getDashboardStats(userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
 
-  // Get user's organizations
-  const userOrgs = await getUserOrganizations(currentUserId);
-  const orgIds = userOrgs.map(org => org.id);
+    // Get user's organizations
+    const userOrgs = await getUserOrganizations(userInfo);
+    const orgIds = userOrgs.map(org => org.id);
 
-  if (orgIds.length === 0) {
+    if (orgIds.length === 0) {
+        return {
+            totalOrganizations: 0,
+            totalProjects: 0,
+            recentProjects: [],
+        };
+    }
+
+    // Get project count
+    const projectStats = await db
+        .select({
+            count: sql<number>`COUNT(*)::int`,
+        })
+        .from(projects)
+        .where(inArray(projects.organizationId, orgIds));
+
+    // Get recent projects
+    const recentProjects = await db
+        .select({
+            id: projects.id,
+            githubRepositoryId: projects.githubRepositoryId,
+            createdAt: projects.createdAt,
+            updatedAt: projects.updatedAt,
+            organization: {
+                name: organizations.name,
+                githubId: organizations.githubId,
+            },
+        })
+        .from(projects)
+        .innerJoin(organizations, eq(projects.organizationId, organizations.id))
+        .where(inArray(projects.organizationId, orgIds))
+        .orderBy(desc(projects.updatedAt))
+        .limit(5);
+
     return {
-      totalOrganizations: 0,
-      totalRecordings: 0,
-      queuedRecordings: 0,
-      processingRecordings: 0,
-      processedRecordings: 0,
-      recentRecordings: [],
+        totalOrganizations: userOrgs.length,
+        totalProjects: projectStats[0]?.count || 0,
+        recentProjects,
     };
-  }
-
-  // Get recording counts by state
-  const recordingStats = await db
-    .select({
-      state: recordings.state,
-      count: sql<number>`COUNT(*)::int`,
-    })
-    .from(recordings)
-    .where(sql`${recordings.organizationId} = ANY(${orgIds})`)
-    .groupBy(recordings.state);
-
-  const statsByState = recordingStats.reduce((acc, stat) => {
-    acc[stat.state] = stat.count;
-    return acc;
-  }, {} as Record<string, number>);
-
-  // Get recent recordings
-  const recentRecordings = await db
-    .select({
-      id: recordings.id,
-      name: recordings.name,
-      state: recordings.state,
-      createdAt: recordings.createdAt,
-      organization: {
-        name: organizations.name,
-        slug: organizations.slug,
-      },
-    })
-    .from(recordings)
-    .innerJoin(organizations, eq(recordings.organizationId, organizations.id))
-    .where(sql`${recordings.organizationId} = ANY(${orgIds})`)
-    .orderBy(desc(recordings.createdAt))
-    .limit(5);
-
-  return {
-    totalOrganizations: userOrgs.length,
-    totalRecordings: (statsByState.queued || 0) + (statsByState.processing || 0) + (statsByState.processed || 0),
-    queuedRecordings: statsByState.queued || 0,
-    processingRecordings: statsByState.processing || 0,
-    processedRecordings: statsByState.processed || 0,
-    recentRecordings,
-  };
 }
