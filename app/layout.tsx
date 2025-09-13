@@ -2,24 +2,12 @@
 import "@radix-ui/themes/styles.css";
 
 import type { Metadata } from "next";
-import NextLink from "next/link";
 import { Theme, Card, Container, Flex, Button, Box } from "@radix-ui/themes";
 import {
     AuthKitProvider,
     Impersonation,
 } from "@workos-inc/authkit-nextjs/components";
 import "./globals.css";
-import {Geist, Geist_Mono} from "next/dist/compiled/@next/font/dist/google";
-
-const geistSans = Geist({
-    variable: "--font-geist-sans",
-    subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
-    subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
     title: "Refactor Project",
@@ -42,7 +30,7 @@ export default function RootLayout({
             <AuthKitProvider>
                 <Impersonation />
                 <html lang="en">
-                <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+                <body>
                 {children}
                 </body>
                 </html>
