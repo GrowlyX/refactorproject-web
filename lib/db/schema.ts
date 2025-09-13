@@ -9,8 +9,10 @@ import {
     uniqueIndex,
     varchar,
     jsonb,
-    bigint,
+    bigint, pgEnum,
 } from 'drizzle-orm/pg-core';
+
+export const workflowStateEnum = pgEnum('workflow_state', ['scheduling', 'in_progress', 'complete']);
 
 // Users table - simplified for authkit integration
 export const users = pgTable(
@@ -98,6 +100,26 @@ export const projects = pgTable(
     },
 );
 
+// Workflows table - linked to projects
+export const workflows = pgTable(
+    'workflows',
+    {
+        id: serial('id').primaryKey(),
+        projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+        state: workflowStateEnum('state').default('scheduling').notNull(),
+        results: jsonb('results').$type<unknown>(), // Arbitrary JSON results
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    },
+    (table) => {
+        return {
+            projectIdIndex: index('workflows_project_id_idx').on(table.projectId),
+            stateIndex: index('workflows_state_idx').on(table.state),
+            createdAtIndex: index('workflows_created_at_idx').on(table.createdAt),
+        };
+    },
+);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
     organizationMemberships: many(organizationMembers),
@@ -119,9 +141,17 @@ export const organizationMembersRelations = relations(organizationMembers, ({ on
     }),
 }));
 
-export const projectsRelations = relations(projects, ({ one }) => ({
+export const projectsRelations = relations(projects, ({ one, many }) => ({
     organization: one(organizations, {
         fields: [projects.organizationId],
         references: [organizations.id],
+    }),
+    workflows: many(workflows),
+}));
+
+export const workflowsRelations = relations(workflows, ({ one }) => ({
+    project: one(projects, {
+        fields: [workflows.projectId],
+        references: [projects.id],
     }),
 }));
