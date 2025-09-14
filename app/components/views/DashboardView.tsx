@@ -1,3 +1,4 @@
+"use client"
 import React, {useState} from "react";
 import {Sidebar} from "@/app/components/Sidebar";
 import {ProfileView} from "@/app/components/views/ProfileView";
