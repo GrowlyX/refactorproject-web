@@ -159,7 +159,7 @@ export class GitHubAppService {
     try {
       const { data } = await this.octokit.apps.listInstallations();
       console.log('Installations data:', data);
-      return data.installations || [];
+      return data;
     } catch (error) {
       console.error('Error fetching installations:', error);
       throw error;
