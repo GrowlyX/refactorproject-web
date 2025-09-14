@@ -8,7 +8,10 @@ const nextConfig: NextConfig = {
     },
     typescript: {
         ignoreBuildErrors: true
-    }
+    },
+    images: {
+        remotePatterns: [new URL('https://workoscdn.com/images/**')],
+    },
   /* config options here */
 };
 
