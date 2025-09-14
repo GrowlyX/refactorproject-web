@@ -71,15 +71,12 @@ export class GitHubAppService {
     // Format the private key properly
     const formattedPrivateKey = config.privateKey.replace(/\\n/g, '\n');
 
-      this.octokit = new Octokit({
-          authStrategy: createAppAuth,
-          auth: {
-              appId: parseInt(config.appId),
-              clientId: config.clientId,
-              clientSecret: config.clientSecret,
-              privateKey: config.privateKey,
-          }
-      })
+    this.octokit = new Octokit({
+      auth: createAppAuth({
+        appId: parseInt(config.appId),
+        privateKey: formattedPrivateKey,
+      }),
+    });
   }
 
   /**

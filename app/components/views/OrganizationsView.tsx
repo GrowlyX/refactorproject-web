@@ -127,6 +127,87 @@ export const OrganizationsView = ({ onSelectOrg }) => {
         }
     };
 
+    const handleSyncOrganization = async (orgId: number) => {
+        setSyncing(true);
+        setError(null);
+
+        try {
+            const response = await fetch(`/api/github/sync/organization/${orgId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await loadOrganizations(); // Reload organizations after successful sync
+            } else {
+                setError(data.error || 'Failed to sync organization');
+            }
+        } catch (err) {
+            setError('Failed to sync organization');
+            console.error('Error syncing organization:', err);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleSyncMembers = async (orgId: number) => {
+        setSyncing(true);
+        setError(null);
+
+        try {
+            const response = await fetch(`/api/github/sync/members/${orgId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await loadOrganizations(); // Reload organizations after successful sync
+            } else {
+                setError(data.error || 'Failed to sync members');
+            }
+        } catch (err) {
+            setError('Failed to sync members');
+            console.error('Error syncing members:', err);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleBackgroundSync = async () => {
+        setSyncing(true);
+        setError(null);
+
+        try {
+            const response = await fetch('/api/github/sync/background', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await loadOrganizations(); // Reload organizations after successful sync
+            } else {
+                setError(data.error || 'Failed to run background sync');
+            }
+        } catch (err) {
+            setError('Failed to run background sync');
+            console.error('Error running background sync:', err);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             month: 'short',
@@ -160,6 +241,18 @@ export const OrganizationsView = ({ onSelectOrg }) => {
                                 GitHub Connected
                             </div>
                         )}
+                        <button 
+                            onClick={handleBackgroundSync}
+                            disabled={syncing}
+                            className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {syncing ? (
+                                <RefreshCw className="animate-spin" size={16} />
+                            ) : (
+                                <RefreshCw size={16} />
+                            )}
+                            {syncing ? 'Syncing...' : 'Background Sync'}
+                        </button>
                         <button 
                             onClick={handleSyncOrganizations}
                             disabled={syncing}
@@ -238,15 +331,39 @@ export const OrganizationsView = ({ onSelectOrg }) => {
                                             </span>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            // Handle menu actions
-                                        }}
-                                        className="text-gray-400 hover:text-gray-600"
-                                    >
-                                        <MoreHorizontal size={20} />
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSyncOrganization(org.id);
+                                            }}
+                                            disabled={syncing}
+                                            className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                                            title="Sync organization"
+                                        >
+                                            <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSyncMembers(org.id);
+                                            }}
+                                            disabled={syncing}
+                                            className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                                            title="Sync members"
+                                        >
+                                            <Users size={16} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                // Handle menu actions
+                                            }}
+                                            className="text-gray-400 hover:text-gray-600"
+                                        >
+                                            <MoreHorizontal size={20} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}

@@ -58,7 +58,7 @@ async function setupLocalPostgres() {
 services:
   postgres:
     image: postgres:16.4-alpine
-    container_name: music_player_postgres
+    container_name: refactor_proj_postgres
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres

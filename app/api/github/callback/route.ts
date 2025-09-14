@@ -73,7 +73,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // If no installation_id, redirect to dashboard with success message
+    // If no installation_id, sync all installations for the user
+    const syncService = new GitHubSyncService(appId, privateKey);
+    const syncResult = await syncService.syncInstallations(user.id);
+    
+    console.log('Callback sync result:', syncResult);
+    
+    // Redirect to dashboard with success message
     return NextResponse.redirect(
       new URL('/dashboard?github_connected=true', request.url)
     );
