@@ -39,7 +39,7 @@ export class GitHubSyncService {
     try {
       // Get installation details
       const installation = await this.githubAppService.getInstallation(installationId);
-      
+
       if (installation.account.type !== 'Organization') {
         result.errors.push('Only organization installations are supported');
         return result;
@@ -76,6 +76,7 @@ export class GitHubSyncService {
         // Sync repositories
         const repos = await githubService.getOrganizationRepositories(installation.account.login);
         for (const repo of repos) {
+            console.log(repo)
           await this.createOrUpdateProject(org.id, repo);
           result.repositoriesSynced++;
         }
@@ -102,11 +103,6 @@ export class GitHubSyncService {
           repositoriesCount: repos.length,
           membersCount: members.length,
         });
-      }
-
-      // Log sync result
-      if (user) {
-        await this.logSyncResult(user.id, result);
       }
 
     } catch (error) {
@@ -572,8 +568,8 @@ export class GitHubSyncService {
         try {
           // Get installations for this organization
           const installations = await this.githubAppService.getInstallations();
-          const installation = installations.find(inst => 
-            inst.account.type === 'Organization' && 
+          const installation = installations.find(inst =>
+            inst.account.type === 'Organization' &&
             inst.account.login === org.name
           );
 
@@ -624,8 +620,8 @@ export class GitHubSyncService {
 
       // Get installation for this organization
       const installations = await this.githubAppService.getInstallations();
-      const installation = installations.find(inst => 
-        inst.account.type === 'Organization' && 
+      const installation = installations.find(inst =>
+        inst.account.type === 'Organization' &&
         inst.account.login === org.name
       );
 
@@ -674,8 +670,8 @@ export class GitHubSyncService {
 
       // Get installation for this organization
       const installations = await this.githubAppService.getInstallations();
-      const installation = installations.find(inst => 
-        inst.account.type === 'Organization' && 
+      const installation = installations.find(inst =>
+        inst.account.type === 'Organization' &&
         inst.account.login === org.name
       );
 
