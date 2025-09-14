@@ -1,6 +1,7 @@
 "use client"
 import React, {useState} from "react";
 import {Sidebar} from "@/app/components/Sidebar";
+import {Header} from "@/app/components/Header";
 import {ProfileView} from "@/app/components/views/ProfileView";
 import {OrganizationsView} from "@/app/components/views/OrganizationsView";
 import {ProjectsView} from "@/app/components/views/ProjectsView";
@@ -69,6 +70,10 @@ export const DashboardView = ({ user }: DashboardViewProps) => {
         }
     };
 
+    const handleProfileClick = () => {
+        setActiveSection('profile');
+    };
+
     const renderContent = () => {
         if (activeSection === 'profile') {
             return <ProfileView user={user} />;
@@ -107,14 +112,39 @@ export const DashboardView = ({ user }: DashboardViewProps) => {
         }
     };
 
+    const getPageTitle = () => {
+        if (activeSection === 'profile') return 'Profile';
+        switch (currentView) {
+            case 'organizations': return 'Organizations';
+            case 'projects': return selectedOrg ? `${selectedOrg.name} - Projects` : 'Projects';
+            case 'workflows': return selectedProject ? `${selectedProject.name} - Workflows` : 'Workflows';
+            default: return 'Dashboard';
+        }
+    };
+
+    const getBreadcrumb = () => {
+        if (activeSection === 'profile') return undefined;
+        if (currentView === 'projects' && selectedOrg) return 'Organizations';
+        if (currentView === 'workflows' && selectedProject && selectedOrg) return `${selectedOrg.name} - Projects`;
+        return undefined;
+    };
+
     return (
         <div className="flex h-screen bg-gray-50">
             <Sidebar
                 activeSection={activeSection}
                 setActiveSection={handleSectionChange}
             />
-            <div className="flex-1 overflow-hidden">
-                {renderContent()}
+            <div className="flex-1 overflow-hidden flex flex-col">
+                <Header 
+                    title={getPageTitle()}
+                    breadcrumb={getBreadcrumb()}
+                    user={user}
+                    onProfileClick={handleProfileClick}
+                />
+                <div className="flex-1 overflow-auto">
+                    {renderContent()}
+                </div>
             </div>
         </div>
     );

@@ -1,7 +1,6 @@
 "use client";
 import {Calendar, ExternalLink, Filter, FolderOpen, Github, MoreHorizontal, Search, Users, RefreshCw, AlertCircle} from "lucide-react";
 import React, {useState, useEffect} from "react";
-import {Header} from "@/app/components/Header";
 
 interface OrganizationsViewProps {
     onSelectOrg: (org: { id: string; name: string; [key: string]: unknown }) => void;
@@ -234,159 +233,155 @@ export const OrganizationsView = ({ onSelectOrg, user }: OrganizationsViewProps)
     };
 
     return (
-        <div>
-            <Header title="Organizations" user={user}>
-                <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                            <input
-                                type="text"
-                                placeholder="Search organizations"
-                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#8661C1] focus:border-transparent"
-                            />
-                        </div>
-                        <button className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                            <Filter size={16} />
-                            Filter
-                        </button>
+        <div className="p-6">
+            <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Search organizations"
+                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
                     </div>
-                    <div className="flex items-center gap-3">
-                        {githubConnected && (
-                            <div className="flex items-center gap-2 text-sm text-green-600">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                GitHub Connected
-                            </div>
-                        )}
-                        <button 
-                            onClick={handleBackgroundSync}
-                            disabled={syncing}
-                            className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {syncing ? (
-                                <RefreshCw className="animate-spin" size={16} />
-                            ) : (
-                                <RefreshCw size={16} />
-                            )}
-                            {syncing ? 'Syncing...' : 'Background Sync'}
-                        </button>
-                        <button 
-                            onClick={handleSyncOrganizations}
-                            disabled={syncing}
-                            className="flex items-center gap-2 bg-[#8661C1] text-white px-4 py-2 rounded-md hover:bg-[#7550A8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {syncing ? (
-                                <RefreshCw className="animate-spin" size={16} />
-                            ) : (
-                                <RefreshCw size={16} />
-                            )}
-                            {syncing ? 'Syncing...' : 'Sync GitHub Orgs'}
-                        </button>
-                    </div>
+                    <button className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                        <Filter size={16} />
+                        Filter
+                    </button>
                 </div>
-            </Header>
+                <div className="flex items-center gap-3">
+                    {githubConnected && (
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            GitHub Connected
+                        </div>
+                    )}
+                    <button 
+                        onClick={handleBackgroundSync}
+                        disabled={syncing}
+                        className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {syncing ? (
+                            <RefreshCw className="animate-spin" size={16} />
+                        ) : (
+                            <RefreshCw size={16} />
+                        )}
+                        {syncing ? 'Syncing...' : 'Background Sync'}
+                    </button>
+                    <button 
+                        onClick={handleSyncOrganizations}
+                        disabled={syncing}
+                        className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-md hover:from-purple-600 hover:to-pink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {syncing ? (
+                            <RefreshCw className="animate-spin" size={16} />
+                        ) : (
+                            <RefreshCw size={16} />
+                        )}
+                        {syncing ? 'Syncing...' : 'Sync GitHub Orgs'}
+                    </button>
+                </div>
+            </div>
 
-            <div className="p-6">
-                {error && (
-                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-red-700">
-                        <AlertCircle size={16} />
-                        {error}
-                    </div>
-                )}
+            {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-red-700">
+                    <AlertCircle size={16} />
+                    {error}
+                </div>
+            )}
 
-                {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <RefreshCw className="animate-spin text-[#8661C1]" size={32} />
-                        <span className="ml-2 text-gray-600">Loading organizations...</span>
-                    </div>
-                ) : organizations.length === 0 ? (
-                    <div className="text-center py-12">
-                        <Github size={48} className="mx-auto text-gray-400 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No organizations found</h3>
-                        <p className="text-gray-500 mb-4">Install our GitHub App to sync your organizations</p>
-                        <button
-                            onClick={handleInstallGitHubApp}
-                            className="bg-[#8661C1] text-white px-6 py-2 rounded-md hover:bg-[#7550A8] transition-colors"
+            {loading ? (
+                <div className="flex items-center justify-center py-12">
+                    <RefreshCw className="animate-spin text-purple-500" size={32} />
+                    <span className="ml-2 text-gray-600">Loading organizations...</span>
+                </div>
+            ) : organizations.length === 0 ? (
+                <div className="text-center py-12">
+                    <Github size={48} className="mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No organizations found</h3>
+                    <p className="text-gray-500 mb-4">Install our GitHub App to sync your organizations</p>
+                    <button
+                        onClick={handleInstallGitHubApp}
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded-md hover:from-purple-600 hover:to-pink-600 transition-colors"
+                    >
+                        Install GitHub App
+                    </button>
+                </div>
+            ) : (
+                <div className="grid gap-4">
+                    {organizations.map((org) => (
+                        <div
+                            key={org.id}
+                            className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all cursor-pointer hover:border-purple-500"
+                            onClick={() => onSelectOrg(org)}
                         >
-                            Install GitHub App
-                        </button>
-                    </div>
-                ) : (
-                    <div className="grid gap-4">
-                        {organizations.map((org) => (
-                            <div
-                                key={org.id}
-                                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all cursor-pointer hover:border-[#8661C1]"
-                                onClick={() => onSelectOrg(org)}
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className="w-12 h-12 bg-[#EFBCD5] rounded-lg flex items-center justify-center">
-                                                <Github size={24} className="text-[#8661C1]" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-900">{org.name}</h3>
-                                                <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                    <span>@{org.name}</span>
-                                                    <ExternalLink size={12} />
-                                                </div>
-                                            </div>
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                                            <Github size={24} className="text-white" />
                                         </div>
-                                        <div className="flex items-center gap-6 text-sm text-gray-600">
-                                            <span className="flex items-center gap-1">
-                                                <FolderOpen size={14} />
-                                                {(org.projectCount as number) || 0} repositories
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Users size={14} />
-                                                {(org.memberCount as number) || 0} members
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Calendar size={14} />
-                                                Joined {formatDate(org.joinedAt as string)}
-                                            </span>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">{org.name}</h3>
+                                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <span>@{org.name}</span>
+                                                <ExternalLink size={12} />
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleSyncOrganization(parseInt(org.id));
-                                            }}
-                                            disabled={syncing}
-                                            className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                                            title="Sync organization"
-                                        >
-                                            <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleSyncMembers(parseInt(org.id));
-                                            }}
-                                            disabled={syncing}
-                                            className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                                            title="Sync members"
-                                        >
-                                            <Users size={16} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // Handle menu actions
-                                            }}
-                                            className="text-gray-400 hover:text-gray-600"
-                                        >
-                                            <MoreHorizontal size={20} />
-                                        </button>
+                                    <div className="flex items-center gap-6 text-sm text-gray-600">
+                                        <span className="flex items-center gap-1">
+                                            <FolderOpen size={14} />
+                                            {(org.projectCount as number) || 0} repositories
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <Users size={14} />
+                                            {(org.memberCount as number) || 0} members
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <Calendar size={14} />
+                                            Joined {formatDate(org.joinedAt as string)}
+                                        </span>
                                     </div>
                                 </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSyncOrganization(parseInt(org.id));
+                                        }}
+                                        disabled={syncing}
+                                        className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                                        title="Sync organization"
+                                    >
+                                        <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSyncMembers(parseInt(org.id));
+                                        }}
+                                        disabled={syncing}
+                                        className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                                        title="Sync members"
+                                    >
+                                        <Users size={16} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Handle menu actions
+                                        }}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <MoreHorizontal size={20} />
+                                    </button>
+                                </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* GitHub App Installation Modal */}
             {showInstallModal && (
@@ -434,7 +429,7 @@ export const OrganizationsView = ({ onSelectOrg, user }: OrganizationsViewProps)
                             <button
                                 onClick={handleConnectGitHub}
                                 disabled={syncing}
-                                className="flex-1 bg-[#8661C1] text-white px-4 py-2 rounded-md hover:bg-[#7550A8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-md hover:from-purple-600 hover:to-pink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {syncing ? 'Connecting...' : 'Connect'}
                             </button>
