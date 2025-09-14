@@ -25,6 +25,7 @@
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.5",
     "lucide-react": "^0.544.0",
+    "mcp-handler": "^1.0.2",
     "next": "15.5.3",
     "postgres": "^3.4.7",
     "react": "19.1.0",
