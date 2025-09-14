@@ -1,5 +1,5 @@
-import {ArrowLeft, Clock, ExternalLink, FolderOpen, GitBranch, MoreHorizontal, Search} from "lucide-react";
-import React from "react";
+import {ArrowLeft, Clock, ExternalLink, FolderOpen, GitBranch, MoreHorizontal, Search, RefreshCw, AlertCircle} from "lucide-react";
+import React, {useState, useEffect} from "react";
 import {Header} from "@/app/components/Header";
 
 interface ProjectsViewProps {
@@ -21,77 +21,61 @@ interface ProjectsViewProps {
 }
 
 export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: ProjectsViewProps) => {
-    // Mock data based on your schema - projects linked to GitHub repositories
-    const projects = [
-        {
-            id: 1,
-            organizationId: selectedOrg.id,
-            githubRepositoryId: 445566,
-            name: 'ecommerce-platform',
-            displayName: 'E-commerce Platform',
-            description: 'Main customer-facing web application with shopping cart and payment processing',
-            language: 'TypeScript',
-            stars: 125,
-            forks: 45,
-            workflows: 12,
-            lastPush: '2025-09-13T08:30:00Z',
-            moduleInterlinks: {
-                nodes: [
-                    { id: 'auth', name: 'Authentication', type: 'module' },
-                    { id: 'cart', name: 'Shopping Cart', type: 'module' },
-                    { id: 'payment', name: 'Payment Processing', type: 'module' }
-                ],
-                links: [
-                    { source: 'auth', target: 'cart', type: 'dependency' },
-                    { source: 'cart', target: 'payment', type: 'dependency' }
-                ]
+    const [projects, setProjects] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const [error, setError] = useState(null);
+
+    // Load projects on component mount
+    useEffect(() => {
+        loadProjects();
+    }, [selectedOrg.id]);
+
+    const loadProjects = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/organizations/${selectedOrg.id}/projects`);
+            const data = await response.json();
+            
+            if (data.success) {
+                setProjects(data.projects);
+            } else {
+                setError(data.error || 'Failed to load projects');
             }
-        },
-        {
-            id: 2,
-            organizationId: selectedOrg.id,
-            githubRepositoryId: 778899,
-            name: 'mobile-app',
-            displayName: 'Mobile App',
-            description: 'iOS and Android mobile application for customer engagement',
-            language: 'React Native',
-            stars: 89,
-            forks: 23,
-            workflows: 6,
-            lastPush: '2025-09-12T16:45:00Z',
-            moduleInterlinks: {
-                nodes: [
-                    { id: 'ui', name: 'UI Components', type: 'module' },
-                    { id: 'api', name: 'API Client', type: 'module' }
-                ],
-                links: [
-                    { source: 'ui', target: 'api', type: 'dependency' }
-                ]
-            }
-        },
-        {
-            id: 3,
-            organizationId: selectedOrg.id,
-            githubRepositoryId: 101112,
-            name: 'analytics-dashboard',
-            displayName: 'Analytics Dashboard',
-            description: 'Internal analytics and reporting dashboard for business insights',
-            language: 'Python',
-            stars: 67,
-            forks: 12,
-            workflows: 4,
-            lastPush: '2025-09-13T11:20:00Z',
-            moduleInterlinks: {
-                nodes: [
-                    { id: 'data', name: 'Data Processing', type: 'module' },
-                    { id: 'viz', name: 'Visualization', type: 'module' }
-                ],
-                links: [
-                    { source: 'data', target: 'viz', type: 'dependency' }
-                ]
-            }
+        } catch (err) {
+            setError('Failed to load projects');
+            console.error('Error loading projects:', err);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    const handleSyncRepositories = async () => {
+        setSyncing(true);
+        setError(null);
+
+        try {
+            const response = await fetch(`/api/github/sync/repositories/${selectedOrg.id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await loadProjects(); // Reload projects after sync
+            } else {
+                setError(data.error || 'Failed to sync repositories');
+            }
+        } catch (err) {
+            setError('Failed to sync repositories');
+            console.error('Sync repositories error:', err);
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     const formatTimeAgo = (dateString) => {
         const now = new Date();
@@ -136,81 +120,114 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
                             <option>React Native</option>
                         </select>
                     </div>
-                    <button className="bg-[#8661C1] text-white px-4 py-2 rounded-md hover:bg-[#7550A8] transition-colors">
-                        Sync Repositories
+                    <button 
+                        onClick={handleSyncRepositories}
+                        disabled={syncing}
+                        className="flex items-center gap-2 bg-[#8661C1] text-white px-4 py-2 rounded-md hover:bg-[#7550A8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {syncing ? (
+                            <RefreshCw className="animate-spin" size={16} />
+                        ) : (
+                            <RefreshCw size={16} />
+                        )}
+                        {syncing ? 'Syncing...' : 'Sync Repositories'}
                     </button>
                 </div>
             </Header>
 
             <div className="p-6">
-                <div className="grid gap-4">
-                    {projects.map((project) => (
-                        <div
-                            key={project.id}
-                            className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all cursor-pointer hover:border-[#8661C1]"
-                            onClick={() => onSelectProject(project)}
+                {error && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-red-700">
+                        <AlertCircle size={16} />
+                        {error}
+                    </div>
+                )}
+
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <RefreshCw className="animate-spin text-[#8661C1]" size={32} />
+                        <span className="ml-2 text-gray-600">Loading projects...</span>
+                    </div>
+                ) : projects.length === 0 ? (
+                    <div className="text-center py-12">
+                        <FolderOpen size={48} className="mx-auto text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
+                        <p className="text-gray-500 mb-4">Sync repositories to see your projects</p>
+                        <button
+                            onClick={handleSyncRepositories}
+                            disabled={syncing}
+                            className="bg-[#8661C1] text-white px-6 py-2 rounded-md hover:bg-[#7550A8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 bg-[#EFBCD5] rounded-lg flex items-center justify-center">
-                                            <FolderOpen size={20} className="text-[#8661C1]" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="text-lg font-semibold text-gray-900">{project.displayName}</h3>
-                                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                          {project.language}
-                        </span>
+                            {syncing ? 'Syncing...' : 'Sync Repositories'}
+                        </button>
+                    </div>
+                ) : (
+                    <div className="grid gap-4">
+                        {projects.map((project) => (
+                            <div
+                                key={project.id}
+                                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all cursor-pointer hover:border-[#8661C1]"
+                                onClick={() => onSelectProject(project)}
+                            >
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-10 h-10 bg-[#EFBCD5] rounded-lg flex items-center justify-center">
+                                                <FolderOpen size={20} className="text-[#8661C1]" />
                                             </div>
-                                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                <span>{project.name}</span>
-                                                <ExternalLink size={12} />
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h3 className="text-lg font-semibold text-gray-900">{project.repositoryName}</h3>
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                        Repository
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                    <span>ID: {project.githubRepositoryId}</span>
+                                                    <ExternalLink size={12} />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <p className="text-gray-600 mb-4">{project.description}</p>
-                                    <div className="flex items-center gap-6 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <GitBranch size={14} />
-                        {project.workflows} workflows
-                    </span>
-                                        <span>⭐ {project.stars}</span>
-                                        <span>🍴 {project.forks}</span>
-                                        <span className="flex items-center gap-1">
-                      <Clock size={14} />
-                      Updated {formatTimeAgo(project.lastPush)}
-                    </span>
-                                    </div>
-                                    {project.moduleInterlinks && project.moduleInterlinks.nodes.length > 0 && (
-                                        <div className="mt-3 flex items-center gap-2">
-                                            <span className="text-xs text-gray-500">Modules:</span>
-                                            {project.moduleInterlinks.nodes.slice(0, 3).map((node, idx) => (
-                                                <span key={node.id} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                          {node.name}
-                        </span>
-                                            ))}
-                                            {project.moduleInterlinks.nodes.length > 3 && (
-                                                <span className="text-xs text-gray-500">
-                          +{project.moduleInterlinks.nodes.length - 3} more
-                        </span>
-                                            )}
+                                        <div className="flex items-center gap-6 text-sm text-gray-500">
+                                            <span className="flex items-center gap-1">
+                                                <GitBranch size={14} />
+                                                {project.defaultBranch || 'main'}
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Clock size={14} />
+                                                Updated {formatTimeAgo(project.updatedAt)}
+                                            </span>
                                         </div>
-                                    )}
+                                        {project.moduleInterlinks && project.moduleInterlinks.nodes && project.moduleInterlinks.nodes.length > 0 && (
+                                            <div className="mt-3 flex items-center gap-2">
+                                                <span className="text-xs text-gray-500">Modules:</span>
+                                                {project.moduleInterlinks.nodes.slice(0, 3).map((node, idx) => (
+                                                    <span key={node.id} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                                        {node.name}
+                                                    </span>
+                                                ))}
+                                                {project.moduleInterlinks.nodes.length > 3 && (
+                                                    <span className="text-xs text-gray-500">
+                                                        +{project.moduleInterlinks.nodes.length - 3} more
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Handle menu actions
+                                        }}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <MoreHorizontal size={20} />
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Handle menu actions
-                                    }}
-                                    className="text-gray-400 hover:text-gray-600"
-                                >
-                                    <MoreHorizontal size={20} />
-                                </button>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

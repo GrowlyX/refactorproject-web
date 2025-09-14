@@ -8,10 +8,16 @@ import {WorkflowsView} from "@/app/components/views/WorkflowsView";
 
 interface DashboardViewProps {
     user: {
+        object: 'user';
         id: string;
         email: string;
-        firstName: string;
-        lastName: string;
+        emailVerified: boolean;
+        profilePictureUrl: string | null;
+        firstName: string | null;
+        lastName: string | null;
+        lastSignInAt: string | null;
+        createdAt: string;
+        updatedAt: string;
     };
 }
 
@@ -21,17 +27,17 @@ export const DashboardView = ({ user }: DashboardViewProps) => {
     const [selectedProject, setSelectedProject] = useState(null);
     const [currentView, setCurrentView] = useState('organizations'); // organizations, projects, workflows
 
-    const handleSelectOrg = (org) => {
+    const handleSelectOrg = (org: any) => {
         setSelectedOrg(org);
         setCurrentView('projects');
     };
 
-    const handleSelectProject = (project) => {
+    const handleSelectProject = (project: any) => {
         setSelectedProject(project);
         setCurrentView('workflows');
     };
 
-    const handleBack = (target) => {
+    const handleBack = (target: string) => {
         if (target === 'organizations') {
             setSelectedOrg(null);
             setSelectedProject(null);
@@ -42,7 +48,7 @@ export const DashboardView = ({ user }: DashboardViewProps) => {
         }
     };
 
-    const handleSectionChange = (section) => {
+    const handleSectionChange = (section: string) => {
         setActiveSection(section);
         if (section === 'organizations') {
             setCurrentView('organizations');
@@ -59,13 +65,14 @@ export const DashboardView = ({ user }: DashboardViewProps) => {
         // Handle the drill-down views for organizations
         switch (currentView) {
             case 'organizations':
-                return <OrganizationsView onSelectOrg={handleSelectOrg} />;
+                return <OrganizationsView onSelectOrg={handleSelectOrg} user={user} />;
             case 'projects':
                 return (
                     <ProjectsView
                         selectedOrg={selectedOrg}
                         onSelectProject={handleSelectProject}
                         onBack={() => handleBack('organizations')}
+                        user={user}
                     />
                 );
             case 'workflows':
@@ -74,10 +81,11 @@ export const DashboardView = ({ user }: DashboardViewProps) => {
                         selectedProject={selectedProject}
                         selectedOrg={selectedOrg}
                         onBack={handleBack}
+                        user={user}
                     />
                 );
             default:
-                return <OrganizationsView onSelectOrg={handleSelectOrg} />;
+                return <OrganizationsView onSelectOrg={handleSelectOrg} user={user} />;
         }
     };
 
