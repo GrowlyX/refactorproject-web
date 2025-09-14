@@ -4,7 +4,7 @@ import { GitHubSyncService } from '@/lib/github/github-sync';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { session } = await authkit(request);
@@ -13,7 +13,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const organizationId = parseInt(params.id);
+    const { id } = await params;
+    const organizationId = parseInt(id);
     if (isNaN(organizationId)) {
       return NextResponse.json({ error: 'Invalid organization ID' }, { status: 400 });
     }
@@ -33,7 +34,7 @@ export async function POST(
     const syncService = new GitHubSyncService(appId, privateKey);
 
     // Sync repositories for the specific organization
-    const syncResult = await syncService.backgroundSyncOrganization(organizationId);
+    const syncResult = await syncService.backgroundSyncOrganization(organizationId, user.id);
 
     return NextResponse.json({
       success: syncResult.success,

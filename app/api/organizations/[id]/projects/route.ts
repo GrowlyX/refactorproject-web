@@ -4,7 +4,7 @@ import { getOrganizationProjects } from '@/lib/db/queries';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { session } = await authkit(request);
@@ -13,7 +13,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const organizationId = parseInt(params.id);
+    const { id } = await params;
+    const organizationId = parseInt(id);
     if (isNaN(organizationId)) {
       return NextResponse.json({ error: 'Invalid organization ID' }, { status: 400 });
     }

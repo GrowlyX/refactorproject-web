@@ -215,9 +215,9 @@ export class GitHubSyncService {
   }
 
   /**
-   * Sync a specific installation
+   * Sync a specific installation with user context
    */
-  async syncInstallation(installationId: number, userAuthkitId: string): Promise<SyncResult> {
+  async syncInstallationWithUser(installationId: number, userAuthkitId: string): Promise<SyncResult> {
     const result: SyncResult = {
       success: true,
       organizationsSynced: 0,
@@ -602,7 +602,7 @@ export class GitHubSyncService {
   /**
    * Background sync: Sync a specific organization
    */
-  async backgroundSyncOrganization(organizationId: number): Promise<SyncResult> {
+  async backgroundSyncOrganization(organizationId: number, userAuthkitId?: string): Promise<SyncResult> {
     const result: SyncResult = {
       success: true,
       organizationsSynced: 0,
@@ -630,7 +630,8 @@ export class GitHubSyncService {
       );
 
       if (installation) {
-        const syncResult = await this.syncInstallation(installation.id);
+        // Use the syncInstallation method which handles optional userAuthkitId
+        const syncResult = await this.syncInstallation(installation.id, userAuthkitId);
         result.organizationsSynced += syncResult.organizationsSynced;
         result.repositoriesSynced += syncResult.repositoriesSynced;
         result.membersSynced += syncResult.membersSynced;
@@ -651,7 +652,7 @@ export class GitHubSyncService {
   /**
    * Background sync: Sync organization members only
    */
-  async backgroundSyncMembers(organizationId: number): Promise<SyncResult> {
+  async backgroundSyncMembers(organizationId: number, userAuthkitId?: string): Promise<SyncResult> {
     const result: SyncResult = {
       success: true,
       organizationsSynced: 0,
