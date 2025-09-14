@@ -25,17 +25,12 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
     const [syncing, setSyncing] = useState(false);
     const [error, setError] = useState(null);
 
-    // Load projects on component mount
-    useEffect(() => {
-        loadProjects();
-    }, [selectedOrg.id, loadProjects]);
-
     const loadProjects = useCallback(async () => {
         setLoading(true);
         try {
             const response = await fetch(`/api/organizations/${selectedOrg.id}/projects`);
             const data = await response.json();
-            
+
             if (data.success) {
                 setProjects(data.projects);
             } else {
@@ -49,6 +44,10 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
         }
     }, [selectedOrg.id]);
 
+    // Load projects on component mount
+    useEffect(() => {
+        loadProjects();
+    }, [selectedOrg.id, loadProjects]);
     const handleSyncRepositories = async () => {
         setSyncing(true);
         setError(null);
@@ -82,7 +81,7 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
         const diffInMs = now.getTime() - date.getTime();
         const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
         const diffInHours = Math.floor(diffInMinutes / 60);
-        
+
         if (diffInMinutes < 1) return 'Just now';
         if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
         if (diffInHours < 24) return `${diffInHours}h ago`;
@@ -116,7 +115,7 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
                         <option>React Native</option>
                     </select>
                 </div>
-                <button 
+                <button
                     onClick={handleSyncRepositories}
                     disabled={syncing}
                     className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-md hover:from-purple-600 hover:to-pink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
