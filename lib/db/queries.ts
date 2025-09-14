@@ -14,9 +14,9 @@ export interface UserInfo {
     user: {
         id: string;
         email: string;
-        firstName?: string;
-        lastName?: string;
-        profilePictureUrl?: string;
+        firstName?: string | null;
+        lastName?: string | null;
+        profilePictureUrl?: string | null;
         createdAt: string;
         updatedAt: string;
     };

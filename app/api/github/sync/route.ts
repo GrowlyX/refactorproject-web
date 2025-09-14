@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('GitHub sync error:', error);
     return NextResponse.json(
-      { error: 'Failed to sync GitHub data', details: error.message },
+      { error: 'Failed to sync GitHub data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

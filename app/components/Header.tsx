@@ -1,7 +1,13 @@
 import {Bell, HelpCircle, User} from "lucide-react";
 import React from "react";
 
-export const Header = ({ title, breadcrumb, children }) => {
+interface HeaderProps {
+  title: string;
+  breadcrumb?: string;
+  children?: React.ReactNode;
+}
+
+export const Header = ({ title, breadcrumb, children }: HeaderProps) => {
     return (
         <div className="bg-white border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">

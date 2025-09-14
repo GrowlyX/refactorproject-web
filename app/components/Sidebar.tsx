@@ -1,13 +1,18 @@
 import {Building2, Settings, User} from "lucide-react";
 import React from "react";
 
-export const Sidebar = ({ activeSection, setActiveSection }) => {
+interface SidebarProps {
+  activeSection: string;
+  setActiveSection: (section: string) => void;
+}
+
+export const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
     const menuItems = [
         { id: 'organizations', label: 'Organizations', icon: Building2 },
         { id: 'profile', label: 'Profile', icon: User },
     ];
 
-    const MenuItem = ({ item, isActive, onClick }) => {
+    const MenuItem = ({ item, isActive, onClick }: { item: any; isActive: boolean; onClick: (id: string) => void }) => {
         const Icon = item.icon;
 
         return (

@@ -3,7 +3,7 @@ import { GitHubSyncService } from '@/lib/github/github-sync';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Validate environment variables
@@ -17,7 +17,8 @@ export async function POST(
       );
     }
 
-    const organizationId = parseInt(params.id);
+    const resolvedParams = await params;
+    const organizationId = parseInt(resolvedParams.id);
     if (isNaN(organizationId)) {
       return NextResponse.json(
         { error: 'Invalid organization ID' },
