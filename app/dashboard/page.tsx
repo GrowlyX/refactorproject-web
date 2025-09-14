@@ -1,18 +1,8 @@
-"use client"
 import {DashboardView} from "@/app/components/views/DashboardView";
-import { withUser } from "@workos-inc/authkit-nextjs/components";
+import {withAuth} from "@workos-inc/authkit-nextjs";
 
-interface DashboardPageProps {
-    user: {
-        id: string;
-        email: string;
-        firstName: string;
-        lastName: string;
-    };
-}
-
-const DashboardPageComponent = ({ user }: DashboardPageProps) => {
+export default async function Dashboard() {
+    const { user } = await withAuth({ ensureSignedIn: true });
+    
     return <DashboardView user={user} />;
-};
-
-export default withUser(DashboardPageComponent);
+}

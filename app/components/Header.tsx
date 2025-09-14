@@ -5,9 +5,21 @@ interface HeaderProps {
   title: string;
   breadcrumb?: string;
   children?: React.ReactNode;
+  user?: {
+    object: 'user';
+    id: string;
+    email: string;
+    emailVerified: boolean;
+    profilePictureUrl: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    lastSignInAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 
-export const Header = ({ title, breadcrumb, children }: HeaderProps) => {
+export const Header = ({ title, breadcrumb, children, user }: HeaderProps) => {
     return (
         <div className="bg-white border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
@@ -25,7 +37,15 @@ export const Header = ({ title, breadcrumb, children }: HeaderProps) => {
                         <Bell size={20} />
                     </button>
                     <div className="w-8 h-8 bg-[#EFBCD5] rounded-full flex items-center justify-center">
-                        <User size={16} className="text-[#8661C1]" />
+                        {user?.profilePictureUrl ? (
+                            <img 
+                                src={user.profilePictureUrl} 
+                                alt={user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email}
+                                className="w-8 h-8 rounded-full object-cover"
+                            />
+                        ) : (
+                            <User size={16} className="text-[#8661C1]" />
+                        )}
                     </div>
                 </div>
             </div>

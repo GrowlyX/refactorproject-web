@@ -2,7 +2,25 @@ import {ArrowLeft, Clock, ExternalLink, FolderOpen, GitBranch, MoreHorizontal, S
 import React from "react";
 import {Header} from "@/app/components/Header";
 
-export const ProjectsView = ({ selectedOrg, onSelectProject, onBack }) => {
+interface ProjectsViewProps {
+    selectedOrg: any;
+    onSelectProject: (project: any) => void;
+    onBack: () => void;
+    user?: {
+        object: 'user';
+        id: string;
+        email: string;
+        emailVerified: boolean;
+        profilePictureUrl: string | null;
+        firstName: string | null;
+        lastName: string | null;
+        lastSignInAt: string | null;
+        createdAt: string;
+        updatedAt: string;
+    };
+}
+
+export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: ProjectsViewProps) => {
     // Mock data based on your schema - projects linked to GitHub repositories
     const projects = [
         {
@@ -89,6 +107,7 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack }) => {
         <div>
             <Header
                 title={`Projects in ${selectedOrg.displayName}`}
+                user={user}
                 breadcrumb={
                     <button
                         onClick={onBack}

@@ -2,7 +2,25 @@ import {CheckCircle, Clock, GitBranch, MoreHorizontal, Pause, Search, XCircle} f
 import React from "react";
 import {Header} from "@/app/components/Header";
 
-export const WorkflowsView = ({ selectedProject, selectedOrg, onBack }) => {
+interface WorkflowsViewProps {
+    selectedProject: any;
+    selectedOrg: any;
+    onBack: (target: string) => void;
+    user?: {
+        object: 'user';
+        id: string;
+        email: string;
+        emailVerified: boolean;
+        profilePictureUrl: string | null;
+        firstName: string | null;
+        lastName: string | null;
+        lastSignInAt: string | null;
+        createdAt: string;
+        updatedAt: string;
+    };
+}
+
+export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: WorkflowsViewProps) => {
     // Mock data based on your schema
     const workflows = [
         {
@@ -98,6 +116,7 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack }) => {
         <div>
             <Header
                 title={`Workflows in ${selectedProject.displayName}`}
+                user={user}
                 breadcrumb={
                     <div className="flex items-center gap-1 text-sm text-gray-500">
                         <button

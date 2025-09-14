@@ -1,8 +1,25 @@
+"use client";
 import {Calendar, ExternalLink, Filter, FolderOpen, Github, MoreHorizontal, Search, Users, RefreshCw, AlertCircle} from "lucide-react";
 import React, {useState, useEffect} from "react";
 import {Header} from "@/app/components/Header";
 
-export const OrganizationsView = ({ onSelectOrg }) => {
+interface OrganizationsViewProps {
+    onSelectOrg: (org: any) => void;
+    user?: {
+        object: 'user';
+        id: string;
+        email: string;
+        emailVerified: boolean;
+        profilePictureUrl: string | null;
+        firstName: string | null;
+        lastName: string | null;
+        lastSignInAt: string | null;
+        createdAt: string;
+        updatedAt: string;
+    };
+}
+
+export const OrganizationsView = ({ onSelectOrg, user }: OrganizationsViewProps) => {
     const [organizations, setOrganizations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
@@ -218,7 +235,7 @@ export const OrganizationsView = ({ onSelectOrg }) => {
 
     return (
         <div>
-            <Header title="Organizations">
+            <Header title="Organizations" user={user}>
                 <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="relative">

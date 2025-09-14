@@ -5,21 +5,26 @@ import {Header} from "@/app/components/Header";
 
 interface ProfileViewProps {
     user: {
+        object: 'user';
         id: string;
         email: string;
-        firstName: string;
-        lastName: string;
-        profilePictureUrl?: string;
+        emailVerified: boolean;
+        profilePictureUrl: string | null;
+        firstName: string | null;
+        lastName: string | null;
+        lastSignInAt: string | null;
+        createdAt: string;
+        updatedAt: string;
     };
 }
 
 export const ProfileView = ({ user }: ProfileViewProps) => {
-    const fullName = `${user.firstName} ${user.lastName}`;
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
     const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
 
     return (
         <div>
-            <Header title="Profile" />
+            <Header title="Profile" user={user} />
             <div className="p-6">
                 <div className="max-w-2xl">
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -38,7 +43,7 @@ export const ProfileView = ({ user }: ProfileViewProps) => {
                                 )}
                             </div>
                             <div>
-                                <h2 className="text-2xl font-semibold text-gray-900">{fullName}</h2>
+                                <h2 className="text-2xl font-semibold text-gray-900">{fullName || user.email}</h2>
                                 <p className="text-gray-500">{user.email}</p>
                                 <span className="inline-flex mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                                     User
