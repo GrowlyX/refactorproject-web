@@ -48,8 +48,7 @@ export function withAuthkit(
     new URL(`https://${authkitDomain}/oauth2/jwks`),
   );
 
-  const mcpServerDomain =
-    process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL ?? "localhost:3000";
+  const mcpServerDomain = "refactor.liftgate.io";
   const protocol = mcpServerDomain.startsWith("localhost") ? "http" : "https";
 
   return async (request: NextRequest) => {
