@@ -115,7 +115,7 @@ export class GitHubAppService {
   generateInstallationUrlWithCallback(orgLogin?: string, redirectUri?: string): string {
     const baseUrl = orgLogin
       ? `https://github.com/organizations/${orgLogin}/settings/installations/new`
-      : 'https://github.com/settings/installations/new';
+      : 'https://github.com/apps/project-refactor/installations/new';
 
     const params = new URLSearchParams({
       app_id: this.config.appId,

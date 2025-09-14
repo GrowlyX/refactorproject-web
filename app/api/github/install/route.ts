@@ -41,12 +41,9 @@ export async function GET(request: NextRequest) {
     // Generate callback URL
     const callbackUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/github/callback`;
 
-    // Get installation URL with callback for organizations
-    const installationUrl = githubAppService.generateInstallationUrlWithCallback('', callbackUrl);
-
     return NextResponse.json({
       success: true,
-      installationUrl,
+      installationUrl: `https://github.com/apps/project-refactor/installations/new`,
       callbackUrl,
       appId,
     });

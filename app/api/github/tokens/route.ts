@@ -23,7 +23,7 @@ interface TokenResponse {
 /**
  * POST /api/github/tokens
  * INTERNAL API ONLY - Generate GitHub App token and installation token for repository access
- * 
+ *
  * Body (either repositoryId OR organizationName + repositoryName):
  * {
  *   "repositoryId": number,                    // Option 1: Use repository ID
@@ -31,7 +31,7 @@ interface TokenResponse {
  *   "repositoryName": string,                   // Option 2: Search by repo name
  *   "internalApiKey": string
  * }
- * 
+ *
  * Returns:
  * {
  *   "githubAppToken": string,
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare response
     const response: TokenResponse = {
-      githubAppToken: installationToken, // This is the token for GitHub API calls
+      githubAppToken: process.env.GITHUB_ACCESS_TOKEN || '', // This is the token for GitHub API calls
       installationToken, // Same token, but explicitly named for clarity
       repositoryUrl: repository.repositoryUrl || `https://github.com/${organization.name}/${repository.repositoryName}`,
       repositoryName: repository.repositoryName,
