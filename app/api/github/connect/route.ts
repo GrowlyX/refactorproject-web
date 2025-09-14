@@ -6,7 +6,8 @@ import { GitHubSyncService } from '@/lib/github/github-sync';
 export async function POST(request: NextRequest) {
   try {
       const { session } = await authkit(request);
-      const user = session.user.user
+      const user = session.user
+      console.log(user)
       if (!user) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }

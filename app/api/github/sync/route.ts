@@ -4,11 +4,12 @@ import { GitHubSyncService } from '@/lib/github/github-sync';
 
 export async function POST(request: NextRequest) {
   try {
-    const { session } = await authkit(request);
-    const user = session
-    if (!user.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+      const { session } = await authkit(request);
+      const user = session.user
+      console.log(user)
+      if (!user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
 
     const body = await request.json();
     const { accessToken, organizationId } = body;
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
       syncResult = await syncService.syncOrganization(organizationId, accessToken);
     } else {
       // Sync all user organizations
-      syncResult = await syncService.syncUserOrganizations(user.user.user.id);
+      syncResult = await syncService.syncUserOrganizations(user.id);
     }
 
     return NextResponse.json({

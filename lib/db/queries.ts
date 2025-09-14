@@ -7,6 +7,7 @@ import {
     projects,
     users
 } from './schema';
+import {use} from "react";
 
 // Authkit types
 export interface UserInfo {
@@ -33,6 +34,8 @@ export interface UserInfo {
 
 // User management
 export async function getPlatformUser(userInfo: UserInfo) {
+
+    console.log(`DOG: ${userInfo}`)
     const authkitId = userInfo.user.id;
 
     // Try to find existing user
