@@ -95,6 +95,10 @@ export const projects = pgTable(
         repositoryUrl: varchar('repository_url', { length: 500 }),
         defaultBranch: varchar('default_branch', { length: 255 }).default('main'),
         isPrivate: boolean('is_private').default(true).notNull(),
+        language: varchar('language', { length: 100 }),
+        stars: integer('stars').default(0),
+        forks: integer('forks').default(0),
+        description: text('description'),
         lastAnalyzedAt: timestamp('last_analyzed_at'),
         moduleInterlinks: jsonb('module_interlinks').$type<{
             nodes: Array<{

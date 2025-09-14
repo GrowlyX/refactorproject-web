@@ -178,16 +178,39 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <h3 className="text-lg font-semibold text-gray-900">{project.repositoryName}</h3>
-                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                                        Repository
+                                                    <span className={`px-2 py-1 text-xs rounded-full ${
+                                                        project.isPrivate 
+                                                            ? 'bg-red-100 text-red-800' 
+                                                            : 'bg-green-100 text-green-800'
+                                                    }`}>
+                                                        {project.isPrivate ? 'Private' : 'Public'}
                                                     </span>
+                                                    {project.language && (
+                                                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                            {project.language}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                    <span>ID: {project.githubRepositoryId}</span>
-                                                    <ExternalLink size={12} />
+                                                    <span>{project.repositoryUrl ? (
+                                                        <a 
+                                                            href={project.repositoryUrl} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-1 hover:text-[#8661C1] transition-colors"
+                                                        >
+                                                            View on GitHub
+                                                            <ExternalLink size={12} />
+                                                        </a>
+                                                    ) : (
+                                                        `ID: ${project.githubRepositoryId}`
+                                                    )}</span>
                                                 </div>
                                             </div>
                                         </div>
+                                        {project.description && (
+                                            <p className="text-gray-600 mb-4">{project.description}</p>
+                                        )}
                                         <div className="flex items-center gap-6 text-sm text-gray-500">
                                             <span className="flex items-center gap-1">
                                                 <GitBranch size={14} />
@@ -197,6 +220,18 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
                                                 <Clock size={14} />
                                                 Updated {formatTimeAgo(project.updatedAt)}
                                             </span>
+                                            {project.lastAnalyzedAt && (
+                                                <span className="flex items-center gap-1">
+                                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                                    Analyzed {formatTimeAgo(project.lastAnalyzedAt)}
+                                                </span>
+                                            )}
+                                            {project.stars !== undefined && (
+                                                <span>⭐ {project.stars}</span>
+                                            )}
+                                            {project.forks !== undefined && (
+                                                <span>🍴 {project.forks}</span>
+                                            )}
                                         </div>
                                         {project.moduleInterlinks && project.moduleInterlinks.nodes && project.moduleInterlinks.nodes.length > 0 && (
                                             <div className="mt-3 flex items-center gap-2">

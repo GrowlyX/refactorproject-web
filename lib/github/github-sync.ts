@@ -438,6 +438,10 @@ export class GitHubSyncService {
           repositoryUrl: githubRepo.html_url,
           defaultBranch: githubRepo.default_branch,
           isPrivate: githubRepo.private,
+          language: githubRepo.language,
+          stars: githubRepo.stargazers_count,
+          forks: githubRepo.forks_count,
+          description: githubRepo.description,
           updatedAt: new Date(),
         })
         .where(eq(projects.id, project.id));
@@ -452,6 +456,10 @@ export class GitHubSyncService {
           repositoryUrl: githubRepo.html_url,
           defaultBranch: githubRepo.default_branch,
           isPrivate: githubRepo.private,
+          language: githubRepo.language,
+          stars: githubRepo.stargazers_count,
+          forks: githubRepo.forks_count,
+          description: githubRepo.description,
         });
     }
   }
