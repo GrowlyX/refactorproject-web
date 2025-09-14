@@ -7,8 +7,29 @@ import {
     projects,
     users
 } from './schema';
-import {UserInfo} from "@workos-inc/authkit-nextjs";
-import {createOrganizationFromGitHub} from "@/lib/github/githubActions";
+
+// Authkit types
+export interface UserInfo {
+    user: {
+        id: string;
+        email: string;
+        firstName?: string;
+        lastName?: string;
+        profilePictureUrl?: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+    sessionId: string;
+    organizationId?: string;
+    role?: string;
+    permissions?: string[];
+    entitlements?: string[];
+    impersonator?: {
+        email: string;
+        reason: string | null;
+    };
+    accessToken: string;
+}
 
 // User management
 export async function getPlatformUser(userInfo: UserInfo) {
@@ -557,35 +578,4 @@ export async function getDashboardStats(userInfo: UserInfo) {
         totalProjects: projectStats[0]?.count || 0,
         recentProjects,
     };
-}
-// API Route Handlers (create these files in your Next.js app/api directory)
-
-// app/api/organizations/check/[orgName]/route.ts
-
-
-// app/api/organizations/poll/route.ts
-
-
-// Helper function to get current user info (implement based on your WorkOS setup)
-async function getCurrentUserInfo(request: Request): Promise<UserInfo | null> {
-    // Implement based on your WorkOS authentication setup
-    // This should extract the user information from the request
-    // and return it in the UserInfo format
-
-    // Example:
-    // const session = await getSession(request);
-    // if (!session) return null;
-    //
-    // return {
-    //     user: {
-    //         id: session.userId,
-    //         email: session.userEmail,
-    //         // ... other fields
-    //     },
-    //     // ... other session info
-    // };
-
-
-
-    throw new Error('getCurrentUserInfo not implemented - integrate with your WorkOS setup');
 }
