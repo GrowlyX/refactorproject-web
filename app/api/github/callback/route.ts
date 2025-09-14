@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
-    const state = searchParams.get('state');
     const installationId = searchParams.get('installation_id');
 
     if (!code) {
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Exchange code for access token
-    const accessToken = await githubAppService.exchangeCodeForToken(
+    await githubAppService.exchangeCodeForToken(
       code,
       `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/github/callback`
     );

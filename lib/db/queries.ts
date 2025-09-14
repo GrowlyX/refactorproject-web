@@ -1,5 +1,5 @@
 // lib/queries.ts
-import { and, desc, eq, ilike, or, sql, inArray } from 'drizzle-orm';
+import { and, desc, eq, ilike, sql, inArray } from 'drizzle-orm';
 import { db } from './drizzle';
 import {
     organizations,
@@ -8,7 +8,6 @@ import {
     users,
     workflows
 } from './schema';
-import {use} from "react";
 
 // Authkit types
 export interface UserInfo {
@@ -403,7 +402,7 @@ export async function createProject(
     organizationId: number,
     githubRepositoryId: number,
     userInfo: UserInfo,
-    moduleInterlinks?: any,
+    moduleInterlinks?: { nodes: Array<{ id: string; name: string }> },
 ) {
     const user = await getPlatformUser(userInfo);
 
@@ -426,7 +425,7 @@ export async function createProject(
 export async function updateProject(
     projectId: number,
     updates: {
-        moduleInterlinks?: any;
+        moduleInterlinks?: { nodes: Array<{ id: string; name: string }> };
     },
     userInfo: UserInfo
 ) {
@@ -544,7 +543,7 @@ export async function searchProjects(organizationId: number, query: string, user
 
 // Dashboard stats
 export async function getDashboardStats(userInfo: UserInfo) {
-    const user = await getPlatformUser(userInfo);
+    await getPlatformUser(userInfo);
 
     // Get user's organizations
     const userOrgs = await getUserOrganizations(userInfo);
@@ -649,7 +648,7 @@ export async function getWorkflowById(workflowId: number, userInfo: UserInfo) {
 export async function createWorkflow(
     projectId: number,
     state: 'scheduling' | 'in_progress' | 'complete' = 'scheduling',
-    results?: any,
+    results?: unknown[],
     userInfo: UserInfo
 ) {
     const user = await getPlatformUser(userInfo);
@@ -681,7 +680,7 @@ export async function updateWorkflow(
     workflowId: number,
     updates: {
         state?: 'scheduling' | 'in_progress' | 'complete';
-        results?: any;
+        results?: unknown[];
     },
     userInfo: UserInfo
 ) {

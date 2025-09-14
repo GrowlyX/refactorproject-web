@@ -1,5 +1,5 @@
 import { db } from '../db/drizzle';
-import { organizations, organizationMembers, projects, users, githubSyncLogs, pendingInstallations } from '../db/schema';
+import { organizations, organizationMembers, projects, users, githubSyncLogs } from '../db/schema';
 import { GitHubService, GitHubOrganization, GitHubRepository, GitHubUser } from './github-service';
 import { GitHubAppService, GitHubInstallation } from './github-app';
 import { eq, and } from 'drizzle-orm';
@@ -338,7 +338,7 @@ export class GitHubSyncService {
    * Create or update organization
    */
   private async createOrUpdateOrganization(githubOrg: GitHubOrganization) {
-    let org = await db.query.organizations.findFirst({
+    const org = await db.query.organizations.findFirst({
       where: eq(organizations.githubId, githubOrg.id),
     });
 
@@ -370,7 +370,7 @@ export class GitHubSyncService {
    * Create or update organization from GitHub App installation
    */
   private async createOrUpdateOrganizationFromInstallation(installation: GitHubInstallation) {
-    let org = await db.query.organizations.findFirst({
+    const org = await db.query.organizations.findFirst({
       where: eq(organizations.githubId, installation.account.id),
     });
 
@@ -425,7 +425,7 @@ export class GitHubSyncService {
    * Create or update project
    */
   private async createOrUpdateProject(organizationId: number, githubRepo: GitHubRepository) {
-    let project = await db.query.projects.findFirst({
+    const project = await db.query.projects.findFirst({
       where: eq(projects.githubRepositoryId, githubRepo.id),
     });
 
@@ -523,7 +523,7 @@ export class GitHubSyncService {
     organizationId: number,
     syncType: string,
     status: string,
-    details?: any,
+    details?: unknown,
     error?: string
   ) {
     await db
@@ -656,7 +656,7 @@ export class GitHubSyncService {
   /**
    * Background sync: Sync organization members only
    */
-  async backgroundSyncMembers(organizationId: number, userAuthkitId?: string): Promise<SyncResult> {
+  async backgroundSyncMembers(organizationId: number): Promise<SyncResult> {
     const result: SyncResult = {
       success: true,
       organizationsSynced: 0,

@@ -27,12 +27,12 @@ export const DashboardView = ({ user }: DashboardViewProps) => {
     const [selectedProject, setSelectedProject] = useState(null);
     const [currentView, setCurrentView] = useState('organizations'); // organizations, projects, workflows
 
-    const handleSelectOrg = (org: any) => {
+    const handleSelectOrg = (org: { id: string; name: string; [key: string]: unknown }) => {
         setSelectedOrg(org);
         setCurrentView('projects');
     };
 
-    const handleSelectProject = (project: any) => {
+    const handleSelectProject = (project: { id: string; name: string; [key: string]: unknown }) => {
         setSelectedProject(project);
         setCurrentView('workflows');
     };

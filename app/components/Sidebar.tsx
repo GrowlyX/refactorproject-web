@@ -13,7 +13,7 @@ export const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
         { id: 'profile', label: 'Profile', icon: User },
     ];
 
-    const MenuItem = ({ item, isActive, onClick }: { item: any; isActive: boolean; onClick: (id: string) => void }) => {
+    const MenuItem = ({ item, isActive, onClick }: { item: { id: string; label: string; icon: React.ComponentType<{ size: number }> }; isActive: boolean; onClick: (id: string) => void }) => {
         const Icon = item.icon;
 
         return (

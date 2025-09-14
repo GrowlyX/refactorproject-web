@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { seedWorkflows } from '@/lib/db/seed-workflows';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Only allow in development
     if (process.env.NODE_ENV !== 'development') {

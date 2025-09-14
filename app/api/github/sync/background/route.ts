@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { GitHubSyncService } from '@/lib/github/github-sync';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Validate environment variables
     const appId = process.env.GITHUB_APP_ID;

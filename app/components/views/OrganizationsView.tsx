@@ -4,7 +4,7 @@ import React, {useState, useEffect} from "react";
 import {Header} from "@/app/components/Header";
 
 interface OrganizationsViewProps {
-    onSelectOrg: (org: any) => void;
+    onSelectOrg: (org: { id: string; name: string; [key: string]: unknown }) => void;
     user?: {
         object: 'user';
         id: string;
@@ -415,10 +415,10 @@ export const OrganizationsView = ({ onSelectOrg, user }: OrganizationsViewProps)
                                 <strong>Installation Process:</strong>
                             </p>
                             <ol className="text-sm text-blue-700 list-decimal list-inside space-y-1">
-                                <li>Click "Install on GitHub" above</li>
+                                <li>Click &quot;Install on GitHub&quot; above</li>
                                 <li>Select your organization and repositories</li>
                                 <li>Complete the installation</li>
-                                <li>You'll be redirected back here automatically</li>
+                                <li>You&apos;ll be redirected back here automatically</li>
                             </ol>
                         </div>
                         <div className="flex gap-3">

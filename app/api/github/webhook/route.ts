@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GitHubAppService } from '@/lib/github/github-app';
 import { GitHubSyncService } from '@/lib/github/github-sync';
 import { db } from '@/lib/db/drizzle';
 import { pendingInstallations, organizations } from '@/lib/db/schema';
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleInstallationEvent(event: any) {
+async function handleInstallationEvent(event: { action: string; installation: { account: { id: number; login: string }; id: number } }) {
   const { action, installation } = event;
 
   if (action === 'created') {
@@ -61,7 +60,7 @@ async function handleInstallationEvent(event: any) {
         process.env.GITHUB_APP_ID!,
         process.env.GITHUB_PRIVATE_KEY!
       );
-
+      
       const syncResult = await githubSyncService.syncInstallation(installation.id);
       console.log(`Auto-sync completed for ${installation.account.login}:`, {
         organizationsSynced: syncResult.organizationsSynced,
@@ -78,11 +77,6 @@ async function handleInstallationEvent(event: any) {
     
     // Update organization status
     try {
-      const githubSyncService = new GitHubSyncService(
-        process.env.GITHUB_APP_ID!,
-        process.env.GITHUB_PRIVATE_KEY!
-      );
-      
       // Mark organization as not installed
       await db
         .update(organizations)
@@ -99,8 +93,8 @@ async function handleInstallationEvent(event: any) {
   }
 }
 
-async function handleInstallationRepositoriesEvent(event: any) {
-  const { action, installation, repositories_added, repositories_removed } = event;
+async function handleInstallationRepositoriesEvent(event: { action: string; repositories_added?: unknown[]; repositories_removed?: unknown[] }) {
+  const { action, repositories_added, repositories_removed } = event;
 
   if (action === 'added' && repositories_added?.length > 0) {
     console.log(`Repositories added to installation: ${repositories_added.length}`);

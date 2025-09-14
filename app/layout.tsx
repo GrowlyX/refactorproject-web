@@ -2,7 +2,7 @@
 import "@radix-ui/themes/styles.css";
 
 import type { Metadata } from "next";
-import { Theme, Card, Container, Flex, Button, Box } from "@radix-ui/themes";
+import { Theme } from "@radix-ui/themes";
 import {
     AuthKitProvider,
     Impersonation,

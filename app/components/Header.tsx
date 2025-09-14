@@ -1,5 +1,6 @@
 import {Bell, HelpCircle, User} from "lucide-react";
 import React from "react";
+import Image from "next/image";
 
 interface HeaderProps {
   title: string;
@@ -38,9 +39,11 @@ export const Header = ({ title, breadcrumb, children, user }: HeaderProps) => {
                     </button>
                     <div className="w-8 h-8 bg-[#EFBCD5] rounded-full flex items-center justify-center">
                         {user?.profilePictureUrl ? (
-                            <img 
+                            <Image 
                                 src={user.profilePictureUrl} 
                                 alt={user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email}
+                                width={32}
+                                height={32}
                                 className="w-8 h-8 rounded-full object-cover"
                             />
                         ) : (

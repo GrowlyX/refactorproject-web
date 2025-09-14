@@ -1,11 +1,11 @@
 import {CheckCircle, Clock, GitBranch, MoreHorizontal, Pause, Search, XCircle, RefreshCw, AlertCircle} from "lucide-react";
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useCallback} from "react";
 import {Header} from "@/app/components/Header";
 import { Workflow } from "@/lib/types/workflow";
 
 interface WorkflowsViewProps {
-    selectedProject: any;
-    selectedOrg: any;
+    selectedProject: { id: string; name: string; [key: string]: unknown };
+    selectedOrg: { id: string; name: string; [key: string]: unknown };
     onBack: (target: string) => void;
     user?: {
         object: 'user';
@@ -30,9 +30,9 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
     // Load workflows on component mount
     useEffect(() => {
         loadWorkflows();
-    }, [selectedProject.id]);
+    }, [selectedProject.id, loadWorkflows]);
 
-    const loadWorkflows = async () => {
+    const loadWorkflows = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -50,7 +50,7 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedProject.id]);
 
     const handleRefresh = async () => {
         setRefreshing(true);

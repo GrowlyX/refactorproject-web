@@ -1,10 +1,10 @@
 import {ArrowLeft, Clock, ExternalLink, FolderOpen, GitBranch, MoreHorizontal, Search, RefreshCw, AlertCircle} from "lucide-react";
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useCallback} from "react";
 import {Header} from "@/app/components/Header";
 
 interface ProjectsViewProps {
-    selectedOrg: any;
-    onSelectProject: (project: any) => void;
+    selectedOrg: { id: string; name: string; [key: string]: unknown };
+    onSelectProject: (project: { id: string; name: string; [key: string]: unknown }) => void;
     onBack: () => void;
     user?: {
         object: 'user';
@@ -29,9 +29,9 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
     // Load projects on component mount
     useEffect(() => {
         loadProjects();
-    }, [selectedOrg.id]);
+    }, [selectedOrg.id, loadProjects]);
 
-    const loadProjects = async () => {
+    const loadProjects = useCallback(async () => {
         setLoading(true);
         try {
             const response = await fetch(`/api/organizations/${selectedOrg.id}/projects`);
@@ -48,7 +48,7 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedOrg.id]);
 
     const handleSyncRepositories = async () => {
         setSyncing(true);
@@ -236,7 +236,7 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
                                         {project.moduleInterlinks && project.moduleInterlinks.nodes && project.moduleInterlinks.nodes.length > 0 && (
                                             <div className="mt-3 flex items-center gap-2">
                                                 <span className="text-xs text-gray-500">Modules:</span>
-                                                {project.moduleInterlinks.nodes.slice(0, 3).map((node, idx) => (
+                                                {project.moduleInterlinks.nodes.slice(0, 3).map((node) => (
                                                     <span key={node.id} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
                                                         {node.name}
                                                     </span>

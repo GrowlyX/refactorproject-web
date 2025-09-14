@@ -1,7 +1,7 @@
 "use client";
-import {User} from "lucide-react";
 import React from "react";
 import {Header} from "@/app/components/Header";
+import Image from "next/image";
 
 interface ProfileViewProps {
     user: {
@@ -31,9 +31,11 @@ export const ProfileView = ({ user }: ProfileViewProps) => {
                         <div className="flex items-center gap-4 mb-6">
                             <div className="w-20 h-20 bg-[#EFBCD5] rounded-full flex items-center justify-center">
                                 {user.profilePictureUrl ? (
-                                    <img 
+                                    <Image 
                                         src={user.profilePictureUrl} 
                                         alt={fullName}
+                                        width={80}
+                                        height={80}
                                         className="w-20 h-20 rounded-full object-cover"
                                     />
                                 ) : (
