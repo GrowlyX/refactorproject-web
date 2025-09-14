@@ -26,17 +26,13 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Load workflows on component mount
-    useEffect(() => {
-        loadWorkflows();
-    }, [selectedProject.id, loadWorkflows]);
-
+    // Load workflows on component moun
     const loadWorkflows = useCallback(async () => {
         setLoading(true);
         try {
             const response = await fetch(`/api/projects/${selectedProject.id}/workflows`);
             const data = await response.json();
-            
+
             if (data.success) {
                 setWorkflows(data.workflows);
             } else {
@@ -49,6 +45,10 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
             setLoading(false);
         }
     }, [selectedProject.id]);
+
+    useEffect(() => {
+        loadWorkflows();
+    }, [selectedProject.id, loadWorkflows]);
 
     const handleRefresh = async () => {
         setRefreshing(true);
@@ -166,7 +166,7 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
                         Refresh
                     </button>
                 </div>
-                <button 
+                <button
                     onClick={handleTriggerWorkflow}
                     className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-md hover:from-purple-600 hover:to-pink-600 transition-colors"
                 >
