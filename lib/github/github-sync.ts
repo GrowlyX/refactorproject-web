@@ -1,6 +1,7 @@
 import { db } from '../db/drizzle';
-import { organizations, organizationMembers, projects, users, githubSyncLogs } from '../db/schema';
+import { organizations, organizationMembers, projects, users, githubSyncLogs, pendingInstallations } from '../db/schema';
 import { GitHubService, GitHubOrganization, GitHubRepository, GitHubUser } from './github-service';
+import { GitHubAppService, GitHubInstallation } from './github-app';
 import { eq, and } from 'drizzle-orm';
 
 export interface SyncResult {
@@ -12,16 +13,21 @@ export interface SyncResult {
 }
 
 export class GitHubSyncService {
-  private githubService: GitHubService;
+  private githubAppService: GitHubAppService;
 
-  constructor(accessToken: string) {
-    this.githubService = new GitHubService(accessToken);
+  constructor(appId: string, privateKey: string) {
+    this.githubAppService = new GitHubAppService({
+      appId,
+      privateKey,
+      clientId: '',
+      clientSecret: '',
+    });
   }
 
   /**
-   * Sync user's GitHub organizations with the database
+   * Sync GitHub App installations with the database
    */
-  async syncUserOrganizations(userAuthkitId: string): Promise<SyncResult> {
+  async syncInstallations(userAuthkitId: string): Promise<SyncResult> {
     const result: SyncResult = {
       success: true,
       organizationsSynced: 0,
@@ -39,49 +45,67 @@ export class GitHubSyncService {
         return result;
       }
 
-      // Update user's GitHub information
-      await this.updateUserGitHubInfo(user.id);
+      // Get all GitHub App installations
+      const installations = await this.githubAppService.getInstallations();
+      console.log('Installations received:', installations);
 
-      // Get user's GitHub organizations
-      const githubOrgs = await this.githubService.getUserOrganizations();
-      
-      for (const githubOrg of githubOrgs) {
+      if (!Array.isArray(installations)) {
+        throw new Error(`Expected installations to be an array, got: ${typeof installations}`);
+      }
+
+      for (const installation of installations) {
         try {
+          // Only process organization installations
+          if (installation.account.type !== 'Organization') {
+            continue;
+          }
+
           // Create or update organization
-          const org = await this.createOrUpdateOrganization(githubOrg);
+          const org = await this.createOrUpdateOrganizationFromInstallation(installation);
           result.organizationsSynced++;
 
           // Add user as member if not already
           await this.addUserToOrganization(user.id, org.id);
 
+          // Create GitHub service for this installation
+          const githubService = GitHubService.forInstallation(
+            this.githubAppService['config'].appId,
+            this.githubAppService['config'].privateKey || '',
+            installation.id
+          );
+
           // Sync repositories
-          const repos = await this.githubService.getOrganizationRepositories(githubOrg.login);
+          const repos = await githubService.getOrganizationRepositories(installation.account.login);
           for (const repo of repos) {
             await this.createOrUpdateProject(org.id, repo);
             result.repositoriesSynced++;
           }
 
           // Sync organization members
-          const members = await this.githubService.getOrganizationMembers(githubOrg.login);
+          const members = await githubService.getOrganizationMembers(installation.account.login);
           for (const member of members) {
             await this.syncOrganizationMember(org.id, member);
             result.membersSynced++;
           }
 
-          // Update organization sync timestamp
+          // Update organization sync timestamp and mark as installed
           await db
             .update(organizations)
-            .set({ lastSyncAt: new Date() })
+            .set({
+              lastSyncAt: new Date(),
+              githubAppInstalled: true,
+            })
             .where(eq(organizations.id, org.id));
 
           // Log successful sync
-          await this.logSyncEvent(org.id, 'organization_sync', 'success', {
+          await this.logSyncEvent(org.id, 'installation_sync', 'success', {
+            installationId: installation.id,
             repositoriesCount: repos.length,
             membersCount: members.length,
           });
 
         } catch (error) {
-          const errorMsg = `Failed to sync organization ${githubOrg.login}: ${error.message}`;
+          const errorMsg = `Failed to sync installation ${installation.account.login}: ${error.message}`;
           result.errors.push(errorMsg);
           console.error(errorMsg, error);
         }
@@ -89,7 +113,7 @@ export class GitHubSyncService {
 
     } catch (error) {
       result.success = false;
-      result.errors.push(`Failed to sync organizations: ${error.message}`);
+      result.errors.push(`Failed to sync installations: ${error.message}`);
       console.error('GitHub sync error:', error);
     }
 
@@ -97,9 +121,9 @@ export class GitHubSyncService {
   }
 
   /**
-   * Sync a specific organization
+   * Sync a specific installation
    */
-  async syncOrganization(organizationId: number, accessToken: string): Promise<SyncResult> {
+  async syncInstallation(installationId: number, userAuthkitId: string): Promise<SyncResult> {
     const result: SyncResult = {
       success: true,
       organizationsSynced: 0,
@@ -109,48 +133,72 @@ export class GitHubSyncService {
     };
 
     try {
-      const org = await db.query.organizations.findFirst({
-        where: eq(organizations.id, organizationId),
-      });
-
-      if (!org) {
+      // Get or create user
+      const user = await this.getOrCreateUser(userAuthkitId);
+      if (!user) {
         result.success = false;
-        result.errors.push('Organization not found');
+        result.errors.push('Failed to create or find user');
         return result;
       }
 
-      const githubService = new GitHubService(accessToken);
+      // Get installation details
+      const installation = await this.githubAppService.getInstallation(installationId);
+
+      // Only process organization installations
+      if (installation.account.type !== 'Organization') {
+        result.success = false;
+        result.errors.push('Only organization installations are supported');
+        return result;
+      }
+
+      // Create or update organization
+      const org = await this.createOrUpdateOrganizationFromInstallation(installation);
+      result.organizationsSynced++;
+
+      // Add user as member if not already
+      await this.addUserToOrganization(user.id, org.id);
+
+      // Create GitHub service for this installation
+      const githubService = GitHubService.forInstallation(
+        this.githubAppService['config'].appId,
+        this.githubAppService['config'].privateKey || '',
+        installationId
+      );
 
       // Sync repositories
-      const repos = await githubService.getOrganizationRepositories(org.name);
+      const repos = await githubService.getOrganizationRepositories(installation.account.login);
       for (const repo of repos) {
         await this.createOrUpdateProject(org.id, repo);
         result.repositoriesSynced++;
       }
 
-      // Sync members
-      const members = await githubService.getOrganizationMembers(org.name);
+      // Sync organization members
+      const members = await githubService.getOrganizationMembers(installation.account.login);
       for (const member of members) {
         await this.syncOrganizationMember(org.id, member);
         result.membersSynced++;
       }
 
-      // Update sync timestamp
+      // Update organization sync timestamp and mark as installed
       await db
         .update(organizations)
-        .set({ lastSyncAt: new Date() })
+        .set({
+          lastSyncAt: new Date(),
+          githubAppInstalled: true,
+        })
         .where(eq(organizations.id, org.id));
 
       // Log successful sync
-      await this.logSyncEvent(org.id, 'organization_sync', 'success', {
+      await this.logSyncEvent(org.id, 'installation_sync', 'success', {
+        installationId: installationId,
         repositoriesCount: repos.length,
         membersCount: members.length,
       });
 
     } catch (error) {
       result.success = false;
-      result.errors.push(`Failed to sync organization: ${error.message}`);
-      console.error('Organization sync error:', error);
+      result.errors.push(`Failed to sync installation: ${error.message}`);
+      console.error('Installation sync error:', error);
     }
 
     return result;
@@ -181,7 +229,7 @@ export class GitHubSyncService {
   private async updateUserGitHubInfo(userId: number) {
     try {
       const githubUser = await this.githubService.getAuthenticatedUser();
-      
+
       await db
         .update(users)
         .set({
@@ -222,6 +270,40 @@ export class GitHubSyncService {
         .values({
           githubId: githubOrg.id,
           name: githubOrg.login,
+        })
+        .returning();
+      return newOrg;
+    }
+  }
+
+  /**
+   * Create or update organization from GitHub App installation
+   */
+  private async createOrUpdateOrganizationFromInstallation(installation: GitHubInstallation) {
+    let org = await db.query.organizations.findFirst({
+      where: eq(organizations.githubId, installation.account.id),
+    });
+
+    if (org) {
+      // Update existing organization
+      const [updatedOrg] = await db
+        .update(organizations)
+        .set({
+          name: installation.account.login,
+          githubAppInstalled: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(organizations.id, org.id))
+        .returning();
+      return updatedOrg;
+    } else {
+      // Create new organization
+      const [newOrg] = await db
+        .insert(organizations)
+        .values({
+          githubId: installation.account.id,
+          name: installation.account.login,
+          githubAppInstalled: true,
         })
         .returning();
       return newOrg;

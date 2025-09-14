@@ -6,7 +6,6 @@ export async function GET(request: NextRequest) {
   try {
       const { session } = await authkit(request);
       const user = session.user
-      console.log(user)
       if (!user) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }

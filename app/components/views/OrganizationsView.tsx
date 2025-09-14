@@ -8,12 +8,21 @@ export const OrganizationsView = ({ onSelectOrg }) => {
     const [syncing, setSyncing] = useState(false);
     const [error, setError] = useState(null);
     const [githubConnected, setGithubConnected] = useState(false);
-    const [showConnectModal, setShowConnectModal] = useState(false);
-    const [accessToken, setAccessToken] = useState('');
+    const [showInstallModal, setShowInstallModal] = useState(false);
+    const [installationUrl, setInstallationUrl] = useState('');
 
     // Load organizations on component mount
     useEffect(() => {
         loadOrganizations();
+        
+        // Check for GitHub connection status from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('github_connected') === 'true') {
+            setGithubConnected(true);
+            loadOrganizations(); // Reload organizations after successful connection
+        } else if (urlParams.get('github_error') === 'true') {
+            setError('Failed to connect to GitHub. Please try again.');
+        }
     }, []);
 
     const loadOrganizations = async () => {
@@ -35,12 +44,29 @@ export const OrganizationsView = ({ onSelectOrg }) => {
         }
     };
 
-    const handleConnectGitHub = async () => {
-        if (!accessToken.trim()) {
-            setError('Please enter a GitHub access token');
-            return;
-        }
+    const handleInstallGitHubApp = async () => {
+        setLoading(true);
+        setError(null);
 
+        try {
+            const response = await fetch('/api/github/install');
+            const data = await response.json();
+
+            if (data.success) {
+                setInstallationUrl(data.installationUrl);
+                setShowInstallModal(true);
+            } else {
+                setError(data.error || 'Failed to get installation URL');
+            }
+        } catch (err) {
+            setError('Failed to get installation URL');
+            console.error('GitHub install error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleConnectGitHub = async () => {
         setSyncing(true);
         setError(null);
 
@@ -50,15 +76,13 @@ export const OrganizationsView = ({ onSelectOrg }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ accessToken }),
             });
 
             const data = await response.json();
 
             if (data.success) {
                 setGithubConnected(true);
-                setShowConnectModal(false);
-                setAccessToken('');
+                setShowInstallModal(false);
                 await loadOrganizations(); // Reload organizations after connection
             } else {
                 setError(data.error || 'Failed to connect to GitHub');
@@ -73,7 +97,7 @@ export const OrganizationsView = ({ onSelectOrg }) => {
 
     const handleSyncOrganizations = async () => {
         if (!githubConnected) {
-            setShowConnectModal(true);
+            await handleInstallGitHubApp();
             return;
         }
 
@@ -86,7 +110,6 @@ export const OrganizationsView = ({ onSelectOrg }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ accessToken }),
             });
 
             const data = await response.json();
@@ -170,12 +193,12 @@ export const OrganizationsView = ({ onSelectOrg }) => {
                     <div className="text-center py-12">
                         <Github size={48} className="mx-auto text-gray-400 mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No organizations found</h3>
-                        <p className="text-gray-500 mb-4">Connect your GitHub account to sync your organizations</p>
+                        <p className="text-gray-500 mb-4">Install our GitHub App to sync your organizations</p>
                         <button
-                            onClick={() => setShowConnectModal(true)}
+                            onClick={handleInstallGitHubApp}
                             className="bg-[#8661C1] text-white px-6 py-2 rounded-md hover:bg-[#7550A8] transition-colors"
                         >
-                            Connect GitHub
+                            Install GitHub App
                         </button>
                     </div>
                 ) : (
@@ -231,31 +254,43 @@ export const OrganizationsView = ({ onSelectOrg }) => {
                 )}
             </div>
 
-            {/* GitHub Connection Modal */}
-            {showConnectModal && (
+            {/* GitHub App Installation Modal */}
+            {showInstallModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Connect GitHub</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Install GitHub App</h3>
                         <p className="text-gray-600 mb-4">
-                            Enter your GitHub Personal Access Token to connect your organizations.
+                            Install our GitHub App on your organization to sync repositories and members.
                         </p>
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                GitHub Access Token
-                            </label>
-                            <input
-                                type="password"
-                                value={accessToken}
-                                onChange={(e) => setAccessToken(e.target.value)}
-                                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#8661C1] focus:border-transparent"
-                            />
+                            <p className="text-sm text-gray-500 mb-2">
+                                Click the button below to install the app on your GitHub organization:
+                            </p>
+                            <a
+                                href={installationUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 bg-[#24292e] text-white px-4 py-2 rounded-md hover:bg-[#1a1e22] transition-colors"
+                            >
+                                <Github size={16} />
+                                Install on GitHub
+                            </a>
+                        </div>
+                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <p className="text-sm text-blue-700 mb-2">
+                                <strong>Installation Process:</strong>
+                            </p>
+                            <ol className="text-sm text-blue-700 list-decimal list-inside space-y-1">
+                                <li>Click "Install on GitHub" above</li>
+                                <li>Select your organization and repositories</li>
+                                <li>Complete the installation</li>
+                                <li>You'll be redirected back here automatically</li>
+                            </ol>
                         </div>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => {
-                                    setShowConnectModal(false);
-                                    setAccessToken('');
+                                    setShowInstallModal(false);
                                     setError(null);
                                 }}
                                 className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"

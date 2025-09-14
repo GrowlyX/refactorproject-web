@@ -11,9 +11,11 @@
     "db:seed": "npx tsx lib/db/seed.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "npx tsx lib/db/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "validate:github": "node validate-github-config.js"
   },
   "dependencies": {
+    "@octokit/auth-app": "^8.1.0",
     "@octokit/rest": "^22.0.0",
     "@radix-ui/themes": "^3.2.1",
     "@workos-inc/authkit-nextjs": "^2.7.0",

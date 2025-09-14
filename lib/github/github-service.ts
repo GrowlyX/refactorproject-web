@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import { createAppAuth } from '@octokit/auth-app';
 
 export interface GitHubUser {
   id: number;
@@ -51,11 +52,37 @@ export interface GitHubInstallation {
 
 export class GitHubService {
   private octokit: Octokit;
+  private appId: string;
+  private privateKey: string;
 
-  constructor(accessToken: string) {
+  constructor(appId: string, privateKey: string, installationId?: number) {
+    this.appId = appId;
+    this.privateKey = privateKey;
+
+    // Validate required fields
+    if (!appId) {
+      throw new Error('GitHub App ID is required');
+    }
+    if (!privateKey) {
+      throw new Error('GitHub App private key is required');
+    }
+
+    const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
+
     this.octokit = new Octokit({
-      auth: accessToken,
+      auth: createAppAuth({
+        appId: parseInt(appId),
+        privateKey: formattedPrivateKey,
+        installationId: installationId,
+      }),
     });
+  }
+
+  /**
+   * Create a new instance for a specific installation
+   */
+  static forInstallation(appId: string, privateKey: string, installationId: number): GitHubService {
+    return new GitHubService(appId, privateKey, installationId);
   }
 
   /**
@@ -141,7 +168,7 @@ export class GitHubService {
    */
   async getAppInstallations(): Promise<GitHubInstallation[]> {
     const { data } = await this.octokit.apps.listInstallationsForAuthenticatedUser();
-    
+
     return data.installations.map(installation => ({
       id: installation.id,
       account: {

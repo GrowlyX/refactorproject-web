@@ -6,28 +6,26 @@ export async function POST(request: NextRequest) {
   try {
       const { session } = await authkit(request);
       const user = session.user
-      console.log(user)
       if (!user) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-    const body = await request.json();
-    const { accessToken, organizationId } = body;
+    // Get GitHub App configuration from environment variables
+    const appId = process.env.GITHUB_APP_ID;
+    const privateKey = process.env.GITHUB_PRIVATE_KEY;
 
-    if (!accessToken) {
-      return NextResponse.json({ error: 'Access token is required' }, { status: 400 });
+    // Validate required environment variables
+    if (!appId) {
+      return NextResponse.json({ error: 'GITHUB_APP_ID environment variable is missing' }, { status: 500 });
+    }
+    if (!privateKey) {
+      return NextResponse.json({ error: 'GITHUB_PRIVATE_KEY environment variable is missing' }, { status: 500 });
     }
 
-    const syncService = new GitHubSyncService(accessToken);
+    const syncService = new GitHubSyncService(appId, privateKey);
 
-    let syncResult;
-    if (organizationId) {
-      // Sync specific organization
-      syncResult = await syncService.syncOrganization(organizationId, accessToken);
-    } else {
-      // Sync all user organizations
-      syncResult = await syncService.syncUserOrganizations(user.id);
-    }
+    // Sync all installations
+    const syncResult = await syncService.syncInstallations(user.id);
 
     return NextResponse.json({
       success: syncResult.success,

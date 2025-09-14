@@ -34,8 +34,6 @@ export interface UserInfo {
 
 // User management
 export async function getPlatformUser(userInfo: UserInfo) {
-
-    console.log(`DOG: ${userInfo}`)
     const authkitId = userInfo.user.id;
 
     // Try to find existing user

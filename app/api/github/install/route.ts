@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {authkit} from '@workos-inc/authkit-nextjs';
 import { GitHubAppService } from '@/lib/github/github-app';
-import { GitHubSyncService } from '@/lib/github/github-sync';
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
       const { session } = await authkit(request);
       const user = session.user
@@ -39,23 +38,23 @@ export async function POST(request: NextRequest) {
       clientSecret,
     });
 
-    // Get all installations
-    const installations = await githubAppService.getInstallations();
+    // Generate callback URL
+    const callbackUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/github/callback`;
 
-    // Sync installations with database
-    const syncService = new GitHubSyncService(appId, privateKey);
-    const syncResult = await syncService.syncInstallations(user.id);
+    // Get installation URL with callback for organizations
+    const installationUrl = githubAppService.generateInstallationUrlWithCallback('', callbackUrl);
 
     return NextResponse.json({
       success: true,
-      installations,
-      syncResult,
+      installationUrl,
+      callbackUrl,
+      appId,
     });
 
   } catch (error) {
-    console.error('GitHub connect error:', error);
+    console.error('GitHub install error:', error);
     return NextResponse.json(
-      { error: 'Failed to connect to GitHub', details: error.message },
+      { error: 'Failed to get installation URL', details: error.message },
       { status: 500 }
     );
   }
