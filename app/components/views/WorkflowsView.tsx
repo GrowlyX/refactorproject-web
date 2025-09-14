@@ -236,100 +236,100 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                            <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Workflow
-                                </th>
-                                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    State
-                                </th>
-                                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Progress
-                                </th>
-                                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Duration
-                                </th>
-                                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Created
-                                </th>
-                                <th className="w-10"></th>
-                            </tr>
-                            </thead>
-                            <tbody className="bg-white">
-                            {workflows.map((workflow) => (
-                                <tr key={workflow.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-[#EFBCD5] rounded-lg flex items-center justify-center">
-                                                <GitBranch size={14} className="text-[#8661C1]" />
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">Workflow #{workflow.id}</div>
-                                                <div className="text-sm text-gray-500">
-                                                    {workflow.results?.currentStep ||
-                                                        workflow.results?.error?.split(':')[0] ||
-                                                        'Automated workflow execution'}
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Workflow
+                                        </th>
+                                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            State
+                                        </th>
+                                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Progress
+                                        </th>
+                                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Duration
+                                        </th>
+                                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Created
+                                        </th>
+                                        <th className="w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white">
+                                    {workflows.map((workflow) => (
+                                        <tr key={workflow.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-[#EFBCD5] rounded-lg flex items-center justify-center">
+                                                        <GitBranch size={14} className="text-[#8661C1]" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-medium text-gray-900">Workflow #{workflow.id}</div>
+                                                        <div className="text-sm text-gray-500">
+                                                            {workflow.results?.currentStep ||
+                                                                workflow.results?.error?.split(':')[0] ||
+                                                                'Automated workflow execution'}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            {getStatusIcon(workflow.state, workflow.results)}
-                                            <span className={`text-sm font-medium ${
-                                                workflow.state === 'in_progress'
-                                                    ? 'text-blue-800'
-                                                    : workflow.state === 'scheduling'
-                                                        ? 'text-yellow-800'
-                                                        : workflow.results?.status === 'success'
-                                                            ? 'text-green-800'
-                                                            : 'text-red-800'
-                                            }`}>
-                          {getStatusText(workflow.state, workflow.results)}
-                        </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        {workflow.results?.totalSteps ? (
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-16 bg-gray-200 rounded-full h-2">
-                                                    <div
-                                                        className={`h-2 rounded-full ${
-                                                            workflow.results?.status === 'success' ? 'bg-green-500' :
-                                                                workflow.results?.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'
-                                                        }`}
-                                                        style={{
-                                                            width: `${(workflow.results.completedSteps / workflow.results.totalSteps) * 100}%`
-                                                        }}
-                                                    ></div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    {getStatusIcon(workflow.state, workflow.results)}
+                                                    <span className={`text-sm font-medium ${
+                                                        workflow.state === 'in_progress'
+                                                            ? 'text-blue-800'
+                                                            : workflow.state === 'scheduling'
+                                                                ? 'text-yellow-800'
+                                                                : workflow.results?.status === 'success'
+                                                                    ? 'text-green-800'
+                                                                    : 'text-red-800'
+                                                    }`}>
+                                                        {getStatusText(workflow.state, workflow.results)}
+                                                    </span>
                                                 </div>
-                                                <span className="text-sm text-gray-900">
-                            {workflow.results.completedSteps}/{workflow.results.totalSteps}
-                          </span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-sm text-gray-500">—</span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-900">
-                                        {workflow.results?.duration || '—'}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
-                                        {formatTimeAgo(workflow.createdAt)}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <button className="text-gray-400 hover:text-gray-600">
-                                            <MoreHorizontal size={16} />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                        )}
-                    </div>
-                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {workflow.results?.totalSteps ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                                                            <div
+                                                                className={`h-2 rounded-full ${
+                                                                    workflow.results?.status === 'success' ? 'bg-green-500' :
+                                                                        workflow.results?.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'
+                                                                }`}
+                                                                style={{
+                                                                    width: `${(workflow.results.completedSteps / workflow.results.totalSteps) * 100}%`
+                                                                }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="text-sm text-gray-900">
+                                                            {workflow.results.completedSteps}/{workflow.results.totalSteps}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm text-gray-500">—</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">
+                                                {workflow.results?.duration || '—'}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">
+                                                {formatTimeAgo(workflow.createdAt)}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <button className="text-gray-400 hover:text-gray-600">
+                                                    <MoreHorizontal size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
                 
                 {!loading && workflows.length === 0 && !error && (
                     <div className="p-8 text-center text-gray-500">
