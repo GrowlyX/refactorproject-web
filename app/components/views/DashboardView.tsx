@@ -5,7 +5,16 @@ import {OrganizationsView} from "@/app/components/views/OrganizationsView";
 import {ProjectsView} from "@/app/components/views/ProjectsView";
 import {WorkflowsView} from "@/app/components/views/WorkflowsView";
 
-export const DashboardView = () => {
+interface DashboardViewProps {
+    user: {
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+    };
+}
+
+export const DashboardView = ({ user }: DashboardViewProps) => {
     const [activeSection, setActiveSection] = useState('organizations');
     const [selectedOrg, setSelectedOrg] = useState(null);
     const [selectedProject, setSelectedProject] = useState(null);
@@ -43,7 +52,7 @@ export const DashboardView = () => {
 
     const renderContent = () => {
         if (activeSection === 'profile') {
-            return <ProfileView />;
+            return <ProfileView user={user} />;
         }
 
         // Handle the drill-down views for organizations

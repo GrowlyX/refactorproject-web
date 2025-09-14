@@ -1,5 +1,6 @@
-import {Building2, Settings, User} from "lucide-react";
+import {Building2, Settings, User, LogOut} from "lucide-react";
 import React from "react";
+import { handleSignOutAction } from "@/lib/actions/signOut";
 
 interface SidebarProps {
   activeSection: string;
@@ -57,11 +58,20 @@ export const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-gray-800">
+            <div className="p-3 border-t border-gray-800 space-y-1">
                 <button className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md text-gray-300 hover:text-white hover:bg-gray-800">
                     <Settings size={16} />
                     Settings
                 </button>
+                <form action={handleSignOutAction}>
+                    <button 
+                        type="submit"
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md text-gray-300 hover:text-white hover:bg-gray-800"
+                    >
+                        <LogOut size={16} />
+                        Sign Out
+                    </button>
+                </form>
             </div>
         </div>
     );
