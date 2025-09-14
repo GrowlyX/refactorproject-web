@@ -168,9 +168,9 @@ export const ProjectsView = ({ selectedOrg, onSelectProject, onBack, user }: Pro
                                             <FolderOpen size={24} className="text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+                                            <h3 className="text-lg font-semibold text-gray-900">{project.repositoryName}</h3>
                                             <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                <span>{project.fullName}</span>
+                                                <span>{project.repositoryUrl ? new URL(project.repositoryUrl).pathname.substring(1) : project.repositoryName}</span>
                                                 <ExternalLink size={12} />
                                             </div>
                                         </div>

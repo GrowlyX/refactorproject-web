@@ -1,4 +1,4 @@
-import {Building2, Settings, User, LogOut} from "lucide-react";
+import {Building2, Settings, User, LogOut, Code} from "lucide-react";
 import React from "react";
 import { handleSignOutAction } from "@/lib/actions/signOut";
 
@@ -36,10 +36,10 @@ export const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
             {/* Header */}
             <div className="p-4 border-b border-gray-800">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-[#8661C1] rounded-md flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">D</span>
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <Code className="w-5 h-5 text-white" />
                     </div>
-                    <span className="font-semibold">Dashboard</span>
+                    <span className="font-semibold">REFACTOR</span>
                 </div>
             </div>
 
