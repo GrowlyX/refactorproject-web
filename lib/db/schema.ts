@@ -188,9 +188,41 @@ export const pendingInstallations = pgTable(
     },
 );
 
+// API Keys table for external service authentication
+export const apiKeys = pgTable(
+    'api_keys',
+    {
+        id: serial('id').primaryKey(),
+        userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+        keyName: varchar('key_name', { length: 255 }).notNull(),
+        keyHash: varchar('key_hash', { length: 255 }).notNull().unique(), // SHA-256 hash of the actual key
+        keyPrefix: varchar('key_prefix', { length: 8 }).notNull(), // First 8 chars for identification
+        permissions: jsonb('permissions').$type<{
+            organizations?: number[]; // Array of organization IDs this key can access
+            repositories?: number[]; // Array of repository IDs this key can access
+            actions?: string[]; // Allowed actions: ['read', 'write', 'admin']
+        }>().default({ actions: ['read'] }),
+        lastUsedAt: timestamp('last_used_at'),
+        expiresAt: timestamp('expires_at'),
+        isActive: boolean('is_active').default(true).notNull(),
+        createdAt: timestamp('created_at').defaultNow().notNull(),
+        updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    },
+    (table) => {
+        return {
+            userIdIndex: index('api_keys_user_id_idx').on(table.userId),
+            keyHashIndex: uniqueIndex('api_keys_key_hash_idx').on(table.keyHash),
+            keyPrefixIndex: index('api_keys_key_prefix_idx').on(table.keyPrefix),
+            isActiveIndex: index('api_keys_is_active_idx').on(table.isActive),
+            expiresAtIndex: index('api_keys_expires_at_idx').on(table.expiresAt),
+        };
+    },
+);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
     organizationMemberships: many(organizationMembers),
+    apiKeys: many(apiKeys),
 }));
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
@@ -229,5 +261,12 @@ export const githubSyncLogsRelations = relations(githubSyncLogs, ({ one }) => ({
     organization: one(organizations, {
         fields: [githubSyncLogs.organizationId],
         references: [organizations.id],
+    }),
+}));
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+    user: one(users, {
+        fields: [apiKeys.userId],
+        references: [users.id],
     }),
 }));
