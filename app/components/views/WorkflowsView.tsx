@@ -1,6 +1,7 @@
-import {CheckCircle, Clock, GitBranch, MoreHorizontal, Pause, Search, XCircle} from "lucide-react";
-import React from "react";
+import {CheckCircle, Clock, GitBranch, MoreHorizontal, Pause, Search, XCircle, RefreshCw, AlertCircle} from "lucide-react";
+import React, {useState, useEffect} from "react";
 import {Header} from "@/app/components/Header";
+import { Workflow } from "@/lib/types/workflow";
 
 interface WorkflowsViewProps {
     selectedProject: any;
@@ -21,58 +22,103 @@ interface WorkflowsViewProps {
 }
 
 export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: WorkflowsViewProps) => {
-    // Mock data based on your schema
-    const workflows = [
-        {
-            id: 1,
-            projectId: selectedProject.id,
-            state: 'in_progress',
-            results: {
-                totalSteps: 5,
-                completedSteps: 3,
-                currentStep: 'Building Docker image',
-                logs: ['Started workflow', 'Checked out code', 'Building...']
-            },
-            createdAt: '2025-09-13T08:25:00Z',
-            updatedAt: '2025-09-13T08:30:00Z'
-        },
-        {
-            id: 2,
-            projectId: selectedProject.id,
-            state: 'complete',
-            results: {
-                totalSteps: 4,
-                completedSteps: 4,
-                duration: '2m 34s',
-                status: 'success',
-                deploymentUrl: 'https://app.example.com'
-            },
-            createdAt: '2025-09-13T06:15:00Z',
-            updatedAt: '2025-09-13T06:18:00Z'
-        },
-        {
-            id: 3,
-            projectId: selectedProject.id,
-            state: 'scheduling',
-            results: null,
-            createdAt: '2025-09-13T08:35:00Z',
-            updatedAt: '2025-09-13T08:35:00Z'
-        },
-        {
-            id: 4,
-            projectId: selectedProject.id,
-            state: 'complete',
-            results: {
-                totalSteps: 3,
-                completedSteps: 2,
-                duration: '1m 12s',
-                status: 'failed',
-                error: 'Build failed: Module not found'
-            },
-            createdAt: '2025-09-12T14:20:00Z',
-            updatedAt: '2025-09-12T14:22:00Z'
+    const [workflows, setWorkflows] = useState<Workflow[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Load workflows on component mount
+    useEffect(() => {
+        loadWorkflows();
+    }, [selectedProject.id]);
+
+    const loadWorkflows = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/projects/${selectedProject.id}/workflows`);
+            const data = await response.json();
+            
+            if (data.success) {
+                setWorkflows(data.workflows);
+            } else {
+                setError(data.error || 'Failed to load workflows');
+            }
+        } catch (err) {
+            setError('Failed to load workflows');
+            console.error('Error loading workflows:', err);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/projects/${selectedProject.id}/workflows`);
+            const data = await response.json();
+            
+            if (data.success) {
+                setWorkflows(data.workflows);
+            } else {
+                setError(data.error || 'Failed to refresh workflows');
+            }
+        } catch (err) {
+            setError('Failed to refresh workflows');
+            console.error('Error refreshing workflows:', err);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    const handleTriggerWorkflow = async () => {
+        try {
+            const response = await fetch(`/api/projects/${selectedProject.id}/workflows`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    state: 'scheduling',
+                    results: null
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await loadWorkflows(); // Reload workflows after creating new one
+            } else {
+                setError(data.error || 'Failed to trigger workflow');
+            }
+        } catch (err) {
+            setError('Failed to trigger workflow');
+            console.error('Trigger workflow error:', err);
+        }
+    };
+
+    const handleSeedSampleData = async () => {
+        try {
+            const response = await fetch('/api/dev/seed-workflows', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                await loadWorkflows(); // Reload workflows after seeding
+            } else {
+                setError(data.error || 'Failed to seed sample data');
+            }
+        } catch (err) {
+            setError('Failed to seed sample data');
+            console.error('Seed sample data error:', err);
+        }
+    };
 
     const getStatusIcon = (state, results) => {
         if (state === 'in_progress') {
@@ -151,17 +197,45 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
                             <option>In Progress</option>
                             <option>Complete</option>
                         </select>
+                        <button
+                            onClick={handleRefresh}
+                            disabled={refreshing}
+                            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+                        >
+                            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                            Refresh
+                        </button>
                     </div>
-                    <button className="bg-[#8661C1] text-white px-4 py-2 rounded-md hover:bg-[#7550A8] transition-colors">
+                    <button 
+                        onClick={handleTriggerWorkflow}
+                        className="bg-[#8661C1] text-white px-4 py-2 rounded-md hover:bg-[#7550A8] transition-colors"
+                    >
                         Trigger Workflow
                     </button>
                 </div>
             </Header>
 
             <div className="p-6">
+                {error && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                        <div className="flex items-center gap-2">
+                            <AlertCircle size={16} className="text-red-600" />
+                            <span className="text-red-800">{error}</span>
+                        </div>
+                    </div>
+                )}
+
                 <div className="bg-white rounded-lg border border-gray-200">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
+                    {loading ? (
+                        <div className="p-8 text-center">
+                            <div className="inline-flex items-center gap-2 text-gray-600">
+                                <RefreshCw size={20} className="animate-spin" />
+                                Loading workflows...
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -253,8 +327,33 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
                             ))}
                             </tbody>
                         </table>
+                        )}
                     </div>
-                </div>
+                )}
+                
+                {!loading && workflows.length === 0 && !error && (
+                    <div className="p-8 text-center text-gray-500">
+                        <GitBranch size={48} className="mx-auto mb-4 text-gray-300" />
+                        <h3 className="text-lg font-medium mb-2">No workflows yet</h3>
+                        <p className="mb-4">Get started by triggering your first workflow for this project.</p>
+                        <div className="flex gap-3 justify-center">
+                            <button 
+                                onClick={handleTriggerWorkflow}
+                                className="bg-[#8661C1] text-white px-4 py-2 rounded-md hover:bg-[#7550A8] transition-colors"
+                            >
+                                Trigger First Workflow
+                            </button>
+                            {process.env.NODE_ENV === 'development' && (
+                                <button 
+                                    onClick={handleSeedSampleData}
+                                    className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
+                                >
+                                    Seed Sample Data
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

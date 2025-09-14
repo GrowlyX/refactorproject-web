@@ -5,7 +5,8 @@ import {
     organizations,
     organizationMembers,
     projects,
-    users
+    users,
+    workflows
 } from './schema';
 import {use} from "react";
 
@@ -588,4 +589,150 @@ export async function getDashboardStats(userInfo: UserInfo) {
         totalProjects: projectStats[0]?.count || 0,
         recentProjects,
     };
+}
+
+// Workflow queries
+export async function getProjectWorkflows(projectId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    // Get project to check organization access
+    const project = await db.query.projects.findFirst({
+        where: eq(projects.id, projectId),
+        with: {
+            organization: true,
+        },
+    });
+
+    if (!project) return [];
+
+    // Check if user has access to this project's organization
+    const hasAccess = await checkUserOrgAccess(user.id, project.organizationId);
+    if (!hasAccess) return [];
+
+    return db
+        .select({
+            id: workflows.id,
+            projectId: workflows.projectId,
+            state: workflows.state,
+            results: workflows.results,
+            createdAt: workflows.createdAt,
+            updatedAt: workflows.updatedAt,
+        })
+        .from(workflows)
+        .where(eq(workflows.projectId, projectId))
+        .orderBy(desc(workflows.createdAt));
+}
+
+export async function getWorkflowById(workflowId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    const workflow = await db.query.workflows.findFirst({
+        where: eq(workflows.id, workflowId),
+        with: {
+            project: {
+                with: {
+                    organization: true,
+                },
+            },
+        },
+    });
+
+    if (!workflow) return null;
+
+    // Check if user has access to this workflow's project organization
+    const hasAccess = await checkUserOrgAccess(user.id, workflow.project.organizationId);
+    if (!hasAccess) return null;
+
+    return workflow;
+}
+
+export async function createWorkflow(
+    projectId: number,
+    state: 'scheduling' | 'in_progress' | 'complete' = 'scheduling',
+    results?: any,
+    userInfo: UserInfo
+) {
+    const user = await getPlatformUser(userInfo);
+
+    // Get project to check organization access
+    const project = await db.query.projects.findFirst({
+        where: eq(projects.id, projectId),
+    });
+
+    if (!project) return null;
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, project.organizationId);
+    if (!hasAccess) return null;
+
+    const [workflow] = await db
+        .insert(workflows)
+        .values({
+            projectId,
+            state,
+            results,
+        })
+        .returning();
+
+    return workflow;
+}
+
+export async function updateWorkflow(
+    workflowId: number,
+    updates: {
+        state?: 'scheduling' | 'in_progress' | 'complete';
+        results?: any;
+    },
+    userInfo: UserInfo
+) {
+    const user = await getPlatformUser(userInfo);
+
+    // Get workflow to check project organization access
+    const workflow = await db.query.workflows.findFirst({
+        where: eq(workflows.id, workflowId),
+        with: {
+            project: true,
+        },
+    });
+
+    if (!workflow) return null;
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, workflow.project.organizationId);
+    if (!hasAccess) return null;
+
+    const [updatedWorkflow] = await db
+        .update(workflows)
+        .set({
+            ...updates,
+            updatedAt: new Date(),
+        })
+        .where(eq(workflows.id, workflowId))
+        .returning();
+
+    return updatedWorkflow;
+}
+
+export async function deleteWorkflow(workflowId: number, userInfo: UserInfo) {
+    const user = await getPlatformUser(userInfo);
+
+    // Get workflow to check project organization access
+    const workflow = await db.query.workflows.findFirst({
+        where: eq(workflows.id, workflowId),
+        with: {
+            project: true,
+        },
+    });
+
+    if (!workflow) return false;
+
+    // Check if user has access
+    const hasAccess = await checkUserOrgAccess(user.id, workflow.project.organizationId);
+    if (!hasAccess) return false;
+
+    await db
+        .delete(workflows)
+        .where(eq(workflows.id, workflowId));
+
+    return true;
 }
