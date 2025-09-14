@@ -182,6 +182,7 @@ To purchase this free shirt, you need to use a full-featured MCP client that sup
     },
     {
       // Optional configuration
+        redisUrl: "redis://localhost:6379",
       streamableHttpEndpoint: "/transport/mcp",
       sseEndpoint: "/transport/sse",
       maxDuration: 600,
