@@ -83,30 +83,26 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
         }
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'completed':
+    const getStatusIcon = (state: string) => {
+        switch (state) {
+            case 'complete':
                 return <CheckCircle size={16} className="text-green-500" />;
-            case 'running':
+            case 'in_progress':
                 return <RefreshCw size={16} className="text-blue-500 animate-spin" />;
-            case 'failed':
-                return <XCircle size={16} className="text-red-500" />;
-            case 'paused':
-                return <Pause size={16} className="text-yellow-500" />;
+            case 'scheduling':
+                return <Clock size={16} className="text-yellow-500" />;
             default:
                 return <Clock size={16} className="text-gray-500" />;
         }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'completed':
+    const getStatusColor = (state: string) => {
+        switch (state) {
+            case 'complete':
                 return 'bg-green-100 text-green-800';
-            case 'running':
+            case 'in_progress':
                 return 'bg-blue-100 text-blue-800';
-            case 'failed':
-                return 'bg-red-100 text-red-800';
-            case 'paused':
+            case 'scheduling':
                 return 'bg-yellow-100 text-yellow-800';
             default:
                 return 'bg-gray-100 text-gray-800';
@@ -133,14 +129,14 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
                             onClick={() => onBack('organizations')}
                             className="text-purple-600 hover:text-purple-700 transition-colors"
                         >
-                            {selectedOrg.displayName}
+                            {selectedOrg.name}
                         </button>
                         <span className="mx-1">/</span>
                         <button
                             onClick={() => onBack('projects')}
                             className="text-purple-600 hover:text-purple-700 transition-colors"
                         >
-                            {selectedProject.displayName}
+                            {selectedProject.repositoryName || selectedProject.name}
                         </button>
                     </div>
                     <div className="relative">
@@ -214,28 +210,28 @@ export const WorkflowsView = ({ selectedProject, selectedOrg, onBack, user }: Wo
                                             <GitBranch size={24} className="text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-semibold text-gray-900">{workflow.name}</h3>
+                                            <h3 className="text-lg font-semibold text-gray-900">Workflow #{workflow.id}</h3>
                                             <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                <span>Workflow #{workflow.runNumber}</span>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(workflow.status)}`}>
-                                                    {workflow.status}
+                                                <span>ID: {workflow.id}</span>
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(workflow.state)}`}>
+                                                    {workflow.state}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-6 text-sm text-gray-600">
                                         <span className="flex items-center gap-1">
-                                            {getStatusIcon(workflow.status)}
-                                            {workflow.status}
+                                            {getStatusIcon(workflow.state)}
+                                            {workflow.state}
                                         </span>
                                         <span className="flex items-center gap-1">
                                             <Clock size={14} />
-                                            Started {formatDate(workflow.startedAt)}
+                                            Started {formatDate(workflow.createdAt)}
                                         </span>
-                                        {workflow.conclusion && (
+                                        {workflow.state === 'complete' && (
                                             <span className="flex items-center gap-1">
                                                 <CheckCircle size={14} />
-                                                Completed {formatDate(workflow.completedAt)}
+                                                Completed {formatDate(workflow.updatedAt)}
                                             </span>
                                         )}
                                     </div>
