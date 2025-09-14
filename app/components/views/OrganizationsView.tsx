@@ -20,10 +20,10 @@ interface OrganizationsViewProps {
 }
 
 export const OrganizationsView = ({ onSelectOrg, user }: OrganizationsViewProps) => {
-    const [organizations, setOrganizations] = useState([]);
+    const [organizations, setOrganizations] = useState<Array<{ id: string; name: string; [key: string]: unknown }>>([]);
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [githubConnected, setGithubConnected] = useState(false);
     const [showInstallModal, setShowInstallModal] = useState(false);
     const [installationUrl, setInstallationUrl] = useState('');
@@ -225,7 +225,7 @@ export const OrganizationsView = ({ onSelectOrg, user }: OrganizationsViewProps)
         }
     };
 
-    const formatDate = (dateString) => {
+    const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -336,15 +336,15 @@ export const OrganizationsView = ({ onSelectOrg, user }: OrganizationsViewProps)
                                         <div className="flex items-center gap-6 text-sm text-gray-600">
                                             <span className="flex items-center gap-1">
                                                 <FolderOpen size={14} />
-                                                {org.projectCount || 0} repositories
+                                                {(org.projectCount as number) || 0} repositories
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <Users size={14} />
-                                                {org.memberCount || 0} members
+                                                {(org.memberCount as number) || 0} members
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <Calendar size={14} />
-                                                Joined {formatDate(org.joinedAt)}
+                                                Joined {formatDate(org.joinedAt as string)}
                                             </span>
                                         </div>
                                     </div>
@@ -352,7 +352,7 @@ export const OrganizationsView = ({ onSelectOrg, user }: OrganizationsViewProps)
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleSyncOrganization(org.id);
+                                                handleSyncOrganization(parseInt(org.id));
                                             }}
                                             disabled={syncing}
                                             className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
@@ -363,7 +363,7 @@ export const OrganizationsView = ({ onSelectOrg, user }: OrganizationsViewProps)
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleSyncMembers(org.id);
+                                                handleSyncMembers(parseInt(org.id));
                                             }}
                                             disabled={syncing}
                                             className="text-gray-400 hover:text-gray-600 disabled:opacity-50"

@@ -96,9 +96,9 @@ async function handleInstallationEvent(event: { action: string; installation: { 
 async function handleInstallationRepositoriesEvent(event: { action: string; repositories_added?: unknown[]; repositories_removed?: unknown[] }) {
   const { action, repositories_added, repositories_removed } = event;
 
-  if (action === 'added' && repositories_added?.length > 0) {
+  if (action === 'added' && repositories_added && repositories_added.length > 0) {
     console.log(`Repositories added to installation: ${repositories_added.length}`);
-  } else if (action === 'removed' && repositories_removed?.length > 0) {
+  } else if (action === 'removed' && repositories_removed && repositories_removed.length > 0) {
     console.log(`Repositories removed from installation: ${repositories_removed.length}`);
   }
 }

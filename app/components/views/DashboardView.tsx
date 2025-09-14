@@ -21,18 +21,30 @@ interface DashboardViewProps {
     };
 }
 
+interface Organization {
+    id: string;
+    name: string;
+    [key: string]: unknown;
+}
+
+interface Project {
+    id: string;
+    name: string;
+    [key: string]: unknown;
+}
+
 export const DashboardView = ({ user }: DashboardViewProps) => {
     const [activeSection, setActiveSection] = useState('organizations');
-    const [selectedOrg, setSelectedOrg] = useState(null);
-    const [selectedProject, setSelectedProject] = useState(null);
+    const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [currentView, setCurrentView] = useState('organizations'); // organizations, projects, workflows
 
-    const handleSelectOrg = (org: { id: string; name: string; [key: string]: unknown }) => {
+    const handleSelectOrg = (org: Organization) => {
         setSelectedOrg(org);
         setCurrentView('projects');
     };
 
-    const handleSelectProject = (project: { id: string; name: string; [key: string]: unknown }) => {
+    const handleSelectProject = (project: Project) => {
         setSelectedProject(project);
         setCurrentView('workflows');
     };
@@ -67,6 +79,9 @@ export const DashboardView = ({ user }: DashboardViewProps) => {
             case 'organizations':
                 return <OrganizationsView onSelectOrg={handleSelectOrg} user={user} />;
             case 'projects':
+                if (!selectedOrg) {
+                    return <OrganizationsView onSelectOrg={handleSelectOrg} user={user} />;
+                }
                 return (
                     <ProjectsView
                         selectedOrg={selectedOrg}
@@ -76,6 +91,9 @@ export const DashboardView = ({ user }: DashboardViewProps) => {
                     />
                 );
             case 'workflows':
+                if (!selectedProject || !selectedOrg) {
+                    return <OrganizationsView onSelectOrg={handleSelectOrg} user={user} />;
+                }
                 return (
                     <WorkflowsView
                         selectedProject={selectedProject}
